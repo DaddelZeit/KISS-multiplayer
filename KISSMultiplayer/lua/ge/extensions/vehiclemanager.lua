@@ -7,7 +7,9 @@ local generation = 0
 local meta_timer = 0
 local colors_buffer = {}
 local plates_buffer = {}
+local slowmo_factor_buffer = {}
 local first_vehicle = true
+local slowmo_factor = 0
 
 M.loading_map = false
 M.id_map = {}
@@ -125,13 +127,19 @@ local function send_vehicle_meta_updates()
         changed = changed or not colors_eq(colors, colors_buffer[id])
       end
       colors_buffer[id] = colors
+
+      if slowmo_factor_buffer[id] then
+        changed = changed or slowmo_factor_buffer[id] ~= slowmo_factor
+      end
+      slowmo_factor_buffer[id] = slowmo_factor
       
       if changed then
         local data = {
           VehicleMetaUpdate = {
             id,
             plate,
-            colors
+            colors,
+            slowmo_factor
           }
         }
         network.send_data(data, true)
@@ -184,6 +192,7 @@ local function send_vehicle_config_inner(id, parts_config, data)
   vehicle_data.rotation = {rotation.x, rotation.y, rotation.z, rotation.w}
   vehicle_data.server_id = 0
   vehicle_data.owner = 0
+  vehicle_data.slowmo_factor = bullettime.get()
   network.send_data(
     {
       VehicleData = vehicle_data
@@ -271,8 +280,10 @@ local function onUpdate(dt)
     network.disconnect()
   end
   -- Track color and plate changes
+  local new_slowmo_factor = bullettime.get()
   meta_timer = meta_timer + dt
-  if meta_timer >= 1 then
+  if meta_timer >= 1 or new_slowmo_factor ~= slowmo_factor then
+    slowmo_factor = new_slowmo_factor
     send_vehicle_meta_updates()
     meta_timer = meta_timer - 1
   end
