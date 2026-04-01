@@ -18,6 +18,7 @@ M.packet_gen_buffer = {}
 M.is_network_session = false
 M.delay_spawns = false
 M.vehicle_buffer = {}
+M.ghosted_vehicles = {}
 
 local function get_current_time()
   local date = os.date("*t", os.time() + network.connection.time_offset)
@@ -51,6 +52,15 @@ end
 
 local function colors_eq(a, b)
   return color_eq(a[1], b[1]) and color_eq(a[2], b[2]) and color_eq(a[3], b[3])
+end
+
+local function set_vehicle_ghost(id, bool)
+  local vehicle = be:getObjectByID(id)
+  if vehicle then
+    vehicle:setMeshAlpha(bool and 0.5 or 1, "")
+    vehicle:queueLuaCommand(string.format("kiss_vehicle.set_ghost(%s)", tostring(bool)))
+    M.ghosted_vehicles[id] = bool
+  end
 end
 
 local function send_vehicle_update(obj)
@@ -608,6 +618,7 @@ M.detach_coupler = detach_coupler
 M.attach_coupler_inner = attach_coupler_inner
 M.detach_coupler_inner = detach_coupler_inner
 
+M.set_vehicle_ghost = set_vehicle_ghost
 M.set_position = set_position
 M.set_position_rotation = set_position_rotation
 M.reset_in_place = reset_in_place
