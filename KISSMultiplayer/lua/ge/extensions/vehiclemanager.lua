@@ -428,6 +428,9 @@ local function update_vehicle_meta(data)
     extensions.core_vehicle_manager.liveUpdateVehicleColors(id, vehicle, i, table_to_color(ct))
   end
   vehicle:setField('partConfig', '', serialize(vd.config))
+
+  -- Apply slowmo
+  kisstransform.set_paused(id, data.slowmo_factor == 0)
 end
 
 local function electrics_diff_update(data)

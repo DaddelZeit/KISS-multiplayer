@@ -14,6 +14,7 @@ M.rot_threshold = 2.5
 M.velocity_error_limit = 10
 
 M.hidden = {}
+M.paused = {}
 
 local function update(dt)
   if not network.connection.connected then return end
@@ -62,6 +63,14 @@ local function update_vehicle_transform(data)
   local vehicle = be:getObjectByID(id)
   if vehicle and (not M.inactive[id]) then
     transform.time_past = clamp(vehiclemanager.get_current_time() - transform.sent_at, 0, 0.1) * 0.9 + 0.001
+    if M.paused[id] then
+      -- This scales velocity by 0.5 every time it is called
+      -- Small or 0 scale values are likely to cause instabilities
+      vehicle:applyClusterVelocityScaleAdd(0, 0.5, 0.5, 0.5, 0, 0, 0)
+
+      local target_position = vec3(transform.position)
+      vehicle:setPositionNoPhysicsReset(target_position)
+    end
     vehicle:queueLuaCommand("kiss_transforms.set_target_transform(" .. string.format("%q", jsonEncode(transform)) .. ")")
   end
 end
@@ -70,10 +79,15 @@ local function push_transform(id, t)
   M.local_transforms[id] = jsonDecode(t)
 end
 
+local function set_paused(id, paused)
+  M.paused[id] = paused
+end
+
 M.send_transform_updates = send_transform_updates
 M.send_vehicle_transform = send_vehicle_transform
 M.update_vehicle_transform = update_vehicle_transform
 M.push_transform = push_transform
+M.set_paused = set_paused
 M.onUpdate = update
 
 return M
