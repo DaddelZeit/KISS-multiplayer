@@ -17,6 +17,9 @@ local socket = require("socket")
 local messagepack = require("lua/common/libs/Lua-MessagePack/MessagePack")
 local ping_send_time = 0
 
+local public_scripting = false
+local public_mods = false
+
 M.players = {}
 M.socket = socket
 M.base_secret = "None"
@@ -139,7 +142,7 @@ local function check_lua(l)
 end
 
 local function handle_lua(data)
-  if M.is_server_public then
+  if M.is_server_public and not public_scripting then
     log("W", "kissmp.network.handle_lua", "Blocked arbitrary GE Lua command from public server.")
     return
   end
@@ -150,7 +153,7 @@ local function handle_lua(data)
 end
 
 local function handle_vehicle_lua(data)
-  if M.is_server_public then
+  if M.is_server_public and not public_scripting then
     log("W", "kissmp.network.handle_vehicle_lua", "Blocked arbitrary vehicle Lua command from public server.")
     return
   end
@@ -281,6 +284,8 @@ end
 
 local function connect(addr, player_name, is_public)
   M.is_server_public = is_public or false
+  public_scripting = kissconfig.get_setting("security.public_scripting")
+  public_mods = kissconfig.get_setting("security.public_mods")
 
   if M.connection.connected then
     disconnect()
@@ -380,7 +385,7 @@ local function connect(addr, player_name, is_public)
   end
   if #missing_mods > 0 then
     -- Do not allow public servers to force mod downloads
-    if M.is_server_public then
+    if M.is_server_public and not public_mods then
       kissui.chat.add_message("Connection rejected: Missing mods.", kissui.COLOR_RED)
       disconnect()
       return
