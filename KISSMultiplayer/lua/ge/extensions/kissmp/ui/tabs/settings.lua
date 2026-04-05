@@ -129,7 +129,7 @@ local function draw(dt)
 end
 
 local function onKissMPSettingsChanged(config)
-  config_items["ui.window_opacity"] = im.IntPtr(config["ui.window_opacity"])
+  config_items["ui.window_opacity"] = im.FloatPtr(config["ui.window_opacity"])
 
   config_items["players.show_nametags"] = im.BoolPtr(config["players.show_nametags"])
   config_items["players.show_drivers"] = im.BoolPtr(config["players.show_drivers"])
