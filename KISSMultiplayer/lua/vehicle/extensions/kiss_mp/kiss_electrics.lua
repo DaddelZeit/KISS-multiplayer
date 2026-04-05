@@ -113,7 +113,7 @@ local function update_engine_state()
   if ownership then return end
   if not electrics.values.engineRunning then return end
   local engine_running = electrics.values.engineRunning > 0.5
-  
+
   -- Trigger starter to swap the engine state
   if engine_running ~= last_engine_state then
     controller.mainController.setStarter(true)
@@ -143,7 +143,7 @@ local function send()
     end
   end
   local data = {
-    ElectricsUndefinedUpdate = {obj:getID(), data}
+    ElectricsUndefinedUpdate = {objectId, data}
   }
   if diff_count > 0 then
     obj:queueGameEngineLua(string.format(
@@ -156,7 +156,7 @@ local function apply_diff_signals(diff)
   local signal_left_input = diff["signal_left_input"] or prev_signal_electrics["signal_left_input"] or 0
   local signal_right_input = diff["signal_right_input"] or prev_signal_electrics["signal_right_input"] or 0
   local hazard_enabled = (signal_left_input > 0.5 and signal_right_input > 0.5)
-  
+
   if hazard_enabled then
     electrics.set_warn_signal(1)
   else
@@ -167,7 +167,7 @@ local function apply_diff_signals(diff)
       electrics.toggle_right_signal()
     end
   end
-  
+
   prev_signal_electrics["signal_left_input"] = signal_left_input
   prev_signal_electrics["signal_right_input"] = signal_right_input
 end
@@ -198,7 +198,7 @@ local function apply_diff(buffer_data)
   apply_diff_signals(diff)
   for k, v in pairs(diff) do
     electrics.values[k] = v
-    
+
     local handler = electrics_handlers[k]
     if handler then handler(v) end
   end
@@ -225,11 +225,11 @@ local function onExtensionLoaded()
     end
   end
 
- -- Ignore common led electrics
+  -- Ignore common led electrics
   for i = 0, 10 do
     ignore_key("led"..tostring(i))
   end
- 
+
   -- Ignore controller electrics
   if v.data.controller and type(v.data.controller) == 'table' then 
     for _, controller_data in pairs(v.data.controller) do
@@ -266,7 +266,7 @@ local function onExtensionLoaded()
         local electric = controller_data.name .. "_notAttached"
         local coupler_control_controller = controller.getController(controller_data.name)
         electrics_handlers[electric] = function(v) update_advanced_coupler_state(coupler_control_controller, v) end
-        
+
         -- ignore the related couplers, we'll manage them now
         for _, vn in pairs(tableFromHeaderTable(controller_data.couplerNodes)) do
           local cid1 = beamstate.nodeNameMap[vn.cid1]
@@ -277,19 +277,19 @@ local function onExtensionLoaded()
       end
     end
   end
-  
+
   -- Ignore commonly used disp_* electrics used on vehicles with gear displays
   for k,v in pairs(electrics.values) do
     if type(k) == 'string' and k:sub(1,5) == "disp_" then
       ignored_keys[k] = true
     end
   end
-  
+
   -- Ignore common extension/controller electrics
   if _G["4ws"] and type(_G["4ws"]) == 'table' then
     ignored_keys["4ws"] = true
   end
-  
+
   -- Register handlers
   electrics_handlers["lights_state"] = function(v) electrics.setLightsState(v) end
   electrics_handlers["fog"] = function(v) electrics.set_fog_lights(v) end
@@ -313,10 +313,7 @@ local function kissUpdateOwnership(owned)
   ownership = owned
 end
 
-
-
 M.send = send
-M.apply = apply
 M.apply_diff = apply_diff
 M.ignore_key = ignore_key
 

@@ -114,7 +114,6 @@ local function disconnect(data)
   --vehiclemanager.delay_spawns = false
   --kissui.force_disable_nametags = false
   --Lua:requestReload()
-  --kissutils.hooks.clear()
   if getMissionFilename() ~= "" then
     returnToMainMenu()
   end
@@ -140,10 +139,10 @@ local function check_lua(l)
 end
 
 local function handle_lua(data)
-  if M.is_server_public then 
-      print("Blocked arbitrary Lua command from public server.")
-      return 
-    end
+  if M.is_server_public then
+    log("W", "kissmp.network.handle_lua", "Blocked arbitrary GE Lua command from public server.")
+    return
+  end
 
   if check_lua(data) then
     Lua:queueLuaCommand(data)
@@ -151,15 +150,15 @@ local function handle_lua(data)
 end
 
 local function handle_vehicle_lua(data)
-  if M.is_server_public then 
-    print("Blocked arbitrary vehicle Lua command from public server.")
-    return 
+  if M.is_server_public then
+    log("W", "kissmp.network.handle_vehicle_lua", "Blocked arbitrary vehicle Lua command from public server.")
+    return
   end
 
   local id = data[1]
   local lua = data[2]
   local id = vehiclemanager.id_map[id or -1] or 0
-  local vehicle = be:getObjectByID(id)
+  local vehicle = getObjectByID(id)
   if vehicle and check_lua(lua) then
     vehicle:queueLuaCommand(lua)
   end
@@ -178,6 +177,9 @@ end
 local function handle_player_disconnected(data)
   local id = data
   M.players[id] = nil
+  if kissplayers.players_in_cars[id] then
+    kissplayers.delete_player_head(id)
+  end
 end
 
 local function handle_chat(data)
@@ -207,7 +209,7 @@ end
 
 local function send_data(raw_data, reliable)
   if type(raw_data) == "number" then
-    print("NOT IMPLEMENTED. PLEASE REPORT TO KISSMP DEVELOPERS. CODE: "..raw_data)
+    log("E", "kissmp.network.send_data", "Sending raw data is not implemented. Please report to KissMP developers. Code: "..raw_data)
     return
   end
   if not M.connection.connected then return -1 end
@@ -220,14 +222,13 @@ local function send_data(raw_data, reliable)
   local data_size = #data
   -- Auto-chunk if data is too large
   if data_size > CHUNK_SIZE then
-    print("Large data detected: " .. data_size .. " bytes, sending in chunks")
     local num_chunks = math.ceil(data_size / CHUNK_SIZE)
-    
+
     for i = 0, num_chunks - 1 do
       local start_pos = i * CHUNK_SIZE + 1
       local end_pos = math.min((i + 1) * CHUNK_SIZE, data_size)
       local chunk = data:sub(start_pos, end_pos)
-      
+
       local chunk_data = jsonEncode({
         DataChunk = {
           chunk_index = i,
@@ -239,21 +240,14 @@ local function send_data(raw_data, reliable)
       local len = ffi.string(ffi.new("uint32_t[?]", 1, {#chunk_data}), 4)
       M.connection.tcp:send(string.char(1)..len)
       M.connection.tcp:send(chunk_data)
-      
-      print("Sent chunk " .. (i + 1) .. "/" .. num_chunks)
     end
-    
-    print("All chunks sent successfully")
+
     return 0
   end
-  
+
   -- Send normally
   local len = ffi.string(ffi.new("uint32_t[?]", 1, {data_size}), 4)
-  if reliable then
-    reliable = 1
-  else
-    reliable = 0
-  end
+  reliable = reliable and 1 or 0
   M.connection.tcp:send(string.char(reliable)..len)
   M.connection.tcp:send(data)
   return 0
@@ -297,8 +291,8 @@ local function connect(addr, player_name, is_public)
   M.download_total_bytes = 0
   M.downloaded_bytes = 0
 
-  print("Connecting...")
   addr = sanitize_addr(addr)
+  log("I", "kissmp.network.connect", "Connecting to "..addr.."...")
   kissui.chat.add_message("Connecting to "..addr.."...")
   M.connection.tcp = socket.tcp()
   M.connection.tcp:settimeout(3.0)
@@ -320,21 +314,20 @@ local function connect(addr, player_name, is_public)
     return
   end
 
-    -- Ignore message type
+  -- Ignore message type
   M.connection.tcp:receive(1)
 
   local len, _, _ = M.connection.tcp:receive(4)
   len = bytesToU32(len)
 
   local received, _, _ = M.connection.tcp:receive(len)
-  print(received)
   local server_info = jsonDecode(received).ServerInfo
   if not server_info then
-    print("Failed to fetch server info")
+    log("E", "kissmp.network.connect", "Failed to fetch server info. Aborting.")
     return
   end
-  print("Server name: "..server_info.name)
-  print("Player count: "..server_info.player_count)
+  log("I", "kissmp.network.connect", "Server name: "..server_info.name)
+  log("I", "kissmp.network.connect", "Player count: "..server_info.player_count)
 
   M.connection.tcp:settimeout(0.0)
   M.connection.connected = true
@@ -383,7 +376,7 @@ local function connect(addr, player_name, is_public)
     kissmods.mount_mods(available_mods)
   end
   for k, v in pairs(missing_mods) do
-    print(k.." "..v)
+    log("I", "kissmp.network.connect", "Missing Mod "..k..": "..v)
   end
   if #missing_mods > 0 then
     -- Do not allow public servers to force mod downloads
@@ -406,15 +399,6 @@ local function connect(addr, player_name, is_public)
   end
   kissrichpresence.update()
   kissui.chat.add_message("Connected!")
-end
-
-local function send_messagepack(data_type, reliable, data)
-  local data = data
-  if type(data) == "string" then
-    data = jsonDecode(data)
-  end
-  data = messagepack.pack(data)
-  send_data(data_type, reliable, data)
 end
 
 local function on_finished_download()
@@ -533,7 +517,7 @@ local function onUpdate(dt)
         file = kissmods.open_file(name)
         M.downloads[name] = file
       end
-      
+
       if file and file_data then
         file:write(file_data)
       else
@@ -594,7 +578,6 @@ M.disconnect = disconnect
 M.cancel_download = cancel_download
 M.send_data = send_data
 M.onUpdate = onUpdate
-M.send_messagepack = send_messagepack
 M.onExtensionLoaded = onExtensionLoaded
 
 return M

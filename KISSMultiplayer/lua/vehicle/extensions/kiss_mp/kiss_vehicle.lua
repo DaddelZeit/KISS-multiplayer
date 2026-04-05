@@ -2,7 +2,6 @@ local M = {}
 
 local string_buffer = require("string.buffer")
 
-local parts_config = v.config
 local nodes = {}
 local ref_nodes = {}
 
@@ -71,17 +70,14 @@ local function update_eligible_nodes()
 end
 
 local function update_transform_info()
-  local r = quat(obj:getRotation())
-  local p = obj:getPosition()
-  
   local throttle_input = electrics.values.throttle_input or 0
   local brake_input = electrics.values.brake_input or 0
   if electrics.values.gearboxMode == "arcade" and electrics.values.gearIndex < 0 then
     throttle_input, brake_input = brake_input, throttle_input
   end
-  
+
   local input = {
-    vehicle_id = obj:getID() or 0,
+    vehicle_id = objectId,
     throttle_input = throttle_input,
     brake_input =  brake_input,
     clutch = electrics.values.clutch_input or 0,
@@ -90,8 +86,8 @@ local function update_transform_info()
   }
   local gearbox = kiss_gearbox.get_gearbox_data()
   local transform = {
-    position  = {p.x, p.y, p.z},
-    rotation  = {r.x, r.y, r.z, r.w},
+    position  = {obj:getPositionXYZ()},
+    rotation  = {obj:getRotation()},
     input = input,
     gearbox = gearbox,
     vel_pitch = obj:getPitchAngularVelocity(),
@@ -100,12 +96,14 @@ local function update_transform_info()
   }
   obj:queueGameEngineLua(string.format(
     "kisstransform.push_transform(%d, %q)",
-    obj:getID(), string_buffer.encode(transform)))
+    objectId, string_buffer.encode(transform)))
 end
 
+local velocity = vec3()
+local force = vec3()
+local angular_velocity = vec3()
 local function apply_linear_velocity(x, y, z)
-  local velocity = vec3(x, y, z)
-  local force = float3(0, 0, 0)
+  velocity:set(x, y, z)
   for k=1, #nodes do
     local node = nodes[k]
     if node[3] then
@@ -116,23 +114,31 @@ local function apply_linear_velocity(x, y, z)
   end
 end
 
+local object_rotation = quat()
+local node_position = vec3()
 local function apply_linear_velocity_ang_torque(x, y, z, pitch, roll, yaw)
-  local velocity = vec3(x, y, z)
-  local nodes = nodes
+  velocity:set(x, y, z)
   -- 0.1 seems like the safe value we can use for low velocities
   -- NOTE: Doesn't work as well as expected
-  if velocity:length() < 0.01 then
+  --if velocity:length() < 0.01 then
     --nodes = ref_nodes
-  end
-  local rot = vec3(pitch, roll, yaw):rotated(quat(obj:getRotation()))
-  local node_position = vec3()
-  local force = float3(0, 0, 0)
+  --end
+
+  object_rotation:set(obj:getRotation())
+  angular_velocity:set(pitch, roll, yaw)
+  angular_velocity:setRotate(object_rotation)
+
   for k=1, #nodes do
     local node = nodes[k]
     if node[3] then
+      -- as there is no getNodePositionXYZ, this cannot be further optimized
+      -- TODO: check if future game updates add this, would be a drop-in replacement
       node_position:set(obj:getNodePosition(node[1]))
-      local result = (velocity + node_position:cross(rot)) * node[2]
-      force:set(result.x, result.y, result.z)
+
+      -- force = (velocity + node_position:cross(angular_velocity)) * node[2]
+      force:setCross(node_position, angular_velocity)
+      force:setAdd(velocity)
+      force:setScaled(node[2])
       obj:applyForceVector(node[1], force)
     end
   end
@@ -140,15 +146,13 @@ end
 
 local function send_vehicle_config()
   local config = v.config
-  local r = quat(obj:getRotation())
-  local p = obj:getPosition()
   local data = {
-    position = {p.x, p.y, p.z},
-    rotation = {r.x, r.y, r.z, r.w},
+    position = {obj:getPositionXYZ()},
+    rotation = {obj:getRotation()},
   }
   obj:queueGameEngineLua(string.format(
     "vehiclemanager.send_vehicle_config_inner(%d, %q, %q)",
-    obj:getID(), jsonEncode(config), string_buffer.encode(data)))
+    objectId, jsonEncode(config), string_buffer.encode(data)))
 end
 
 M.update_transform_info = update_transform_info
@@ -156,7 +160,6 @@ M.apply_linear_velocity_ang_torque = apply_linear_velocity_ang_torque
 M.update_eligible_nodes = update_eligible_nodes
 M.apply_linear_velocity = apply_linear_velocity
 M.onExtensionLoaded = onExtensionLoaded
-M.set_reference = set_reference
-M.save_state = save_state
 M.send_vehicle_config = send_vehicle_config
+
 return M

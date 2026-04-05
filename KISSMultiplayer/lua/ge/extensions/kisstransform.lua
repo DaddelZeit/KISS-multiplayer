@@ -2,9 +2,6 @@ local M = {}
 
 local string_buffer = require("string.buffer")
 
-local generation = 0
-local timer = 0
-
 M.raw_transforms = {}
 M.received_transforms = {}
 M.local_transforms = {}
@@ -17,25 +14,28 @@ M.velocity_error_limit = 10
 
 M.hidden = {}
 
+local transform_pos = vec3()
+local camera_pos = vec3()
 local function update(dt)
   if not network.connection.connected then return end
-    -- Get rotation/angular velocity from vehicle lua
-  for i = 0, be:getObjectCount() do
-    local vehicle = be:getObject(i)
-    if vehicle and (not M.inactive[vehicle:getID()]) then
-      vehicle:queueLuaCommand("kiss_vehicle.update_transform_info()")
+  -- Get rotation/angular velocity from vehicle lua
+  for vid, v in vehiclesIterator() do
+    if not M.inactive[vid] then
+      v:queueLuaCommand("kiss_vehicle.update_transform_info()")
     end
   end
 
   -- Don't apply velocity while paused. If we do, velocity gets stored up and released when the game resumes.
   local apply_velocity = not bullettime.getPause()
+  camera_pos:set(core_camera.getPositionXYZ())
+  local view_distance = kissui.enable_view_distance[0] and kissui.view_distance[0] * kissui.view_distance[0] or nil
   for id, transform in pairs(M.received_transforms) do
     --apply_transform(dt, id, transform, apply_velocity)
-    local vehicle = be:getObjectByID(id)
-    local p = vec3(transform.position)
+    local vehicle = getObjectByID(id)
+    transform_pos:set(transform.position[1], transform.position[2], transform.position[3])
     if vehicle and apply_velocity and (not vehiclemanager.ownership[id]) then
-      if ((p:distance(vec3(getCameraPosition())) > kissui.view_distance[0])) and kissui.enable_view_distance[0] then
-        if (not M.inactive[id]) then
+      if view_distance and (transform_pos:squaredDistance(camera_pos) > view_distance) then
+        if not M.inactive[id] then
           vehicle:setActive(0)
           M.inactive[id] = true
         end
@@ -62,7 +62,7 @@ local function update_vehicle_transform(data)
   M.raw_positions[transform.owner or -1] = transform.position
   M.received_transforms[id] = transform
 
-  local vehicle = be:getObjectByID(id)
+  local vehicle = getObjectByID(id)
   transform.time_past = clamp(vehiclemanager.get_current_time() - transform.sent_at, 0, 0.1) * 0.9 + 0.001
   if vehicle and (not M.inactive[id]) then
     vehicle:queueLuaCommand(string.format(
@@ -75,8 +75,6 @@ local function push_transform(id, t)
   M.local_transforms[id] = string_buffer.decode(t)
 end
 
-M.send_transform_updates = send_transform_updates
-M.send_vehicle_transform = send_vehicle_transform
 M.update_vehicle_transform = update_vehicle_transform
 M.push_transform = push_transform
 M.onUpdate = update

@@ -19,7 +19,7 @@ local function set_gear_indices(indices)
   if mainController and cooldown_timer <= 0 then
     local index = indices[1]
     local canShift = true
-    
+
     -- there's a neutralRejectTimer that will lock sequentials into neutral if we try it more than once
     -- possibly a game bug
     if sequential_lock then
@@ -27,7 +27,7 @@ local function set_gear_indices(indices)
     elseif index == 0 and gearbox_is_sequential then
       sequential_lock = true
     end
-    
+
     if canShift then
       mainController.shiftToGearIndex(index, true) -- true for ignoring sequential bounds
       last_requseted_gear = index
@@ -37,7 +37,7 @@ end
 
 local function get_gear_indices()
   local index = electrics.values.gearIndex
-  
+
   -- convert gearIndex to values that shiftToGearIndex accepts
   if index == nil then index = 0 end
   if not gearbox_is_sequential and not gearbox_is_manual then
@@ -49,13 +49,13 @@ local function get_gear_indices()
       index = 2 -- drive
     end
   end
-  
+
   return {index, 0}
 end
 
 local function get_gearbox_data()
   local data = {
-    vehicle_id = obj:getID(),
+    vehicle_id = objectId,
     lock_coef = gearbox and gearbox.lockCoef or 0,
     mode = gearbox and gearbox.mode or "none",
     gear_indices = get_gear_indices(),
@@ -94,7 +94,7 @@ local function onExtensionLoaded()
   mainController = controller.mainController
   vehicle_is_electric = tableSize(powertrain.getDevicesByType("electricMotor")) > 0
   gearbox = powertrain.getDevice("gearbox")
-  
+
   -- Search for a gearbox if one wasn't found
   if not gearbox and not vehicle_is_electric then
     local devices = powertrain.getDevices()
@@ -104,7 +104,7 @@ local function onExtensionLoaded()
       end
     end
   end
-  
+
   if gearbox then
     gearbox_is_manual = gearbox.type == "manualGearbox"
     gearbox_is_sequential = gearbox.type == "sequentialGearbox"
@@ -120,7 +120,6 @@ local function kissUpdateOwnership(owned)
   end
 end
 
-M.send = send
 M.apply = apply
 M.get_gearbox_data = get_gearbox_data
 M.onExtensionLoaded = onExtensionLoaded

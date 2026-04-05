@@ -89,12 +89,11 @@ local function send_vehicle_update(obj)
 end
 
 local function send_vehicle_meta_updates()
-  for i = 0, be:getObjectCount() do
-    local vehicle = be:getObject(i)
-    if vehicle then
+  for id in pairs(vehiclemanager.ownership) do
+    local vehicle = getObjectByID(id)
+    if vehicle and not kisstransform.inactive[id] then
       local changed = false
-      local id = vehicle:getID()
-      
+
       local metal_data = vehicle:getMetallicPaintData()
       local color = vehicle.color
       local palete_0 = vehicle.colorPalette0
@@ -105,17 +104,17 @@ local function send_vehicle_meta_updates()
         color_to_table(palete_0, metal_data[2]),
         color_to_table(palete_1, metal_data[3])
       }
-      
+
       if plates_buffer[id] then
         changed = changed or plates_buffer[id] ~= plate
       end
       plates_buffer[id] = plate
-      
+
       if colors_buffer[id] then
         changed = changed or not colors_eq(colors, colors_buffer[id])
       end
       colors_buffer[id] = colors
-      
+
       if changed then
         local data = {
           VehicleMetaUpdate = {
@@ -131,19 +130,19 @@ local function send_vehicle_meta_updates()
 end
 
 local function update_ownership_limits()
-    local owned_vehicle_count = 0
-    for _, _ in pairs(M.ownership) do
-      owned_vehicle_count = owned_vehicle_count + 1
-    end
-    if owned_vehicle_count >= network.connection.server_info.max_vehicles_per_client then
-      enable_spawning(false)
-    else
-      enable_spawning(true)
-    end
+  local owned_vehicle_count = 0
+  for _, _ in pairs(M.ownership) do
+    owned_vehicle_count = owned_vehicle_count + 1
+  end
+  if owned_vehicle_count >= network.connection.server_info.max_vehicles_per_client then
+    enable_spawning(false)
+  else
+    enable_spawning(true)
+  end
 end
 
 local function send_vehicle_config(vehicle_id)
-  local vehicle = be:getObjectByID(vehicle_id)
+  local vehicle = getObjectByID(vehicle_id)
   if vehicle then
     vehicle:queueLuaCommand("kiss_vehicle.send_vehicle_config()")
   end
@@ -154,7 +153,8 @@ local function send_vehicle_config_inner(id, parts_config_json, buffer_data)
   for k, v in pairs(M.id_map) do
     if v == id and not M.ownership[id] then return end
   end
-  local vehicle = be:getObjectByID(id)
+
+  local vehicle = getObjectByID(id)
   local metal_data = vehicle:getMetallicPaintData()
   local color = vehicle.color
   local palete_0 = vehicle.colorPalette0
@@ -182,39 +182,49 @@ local function send_vehicle_config_inner(id, parts_config_json, buffer_data)
   )
 end
 
+local camera_pos = vec3()
+local transform_pos = vec3()
+
 local function spawn_vehicle(data)
   local model_info = core_vehicles.getModel(data.name)
   if tableSize(model_info) == 0 then
-    print("Rejected modded vehicle spawn " .. data.name)
+    log("W", "kissmp.vehiclemanager.spawn_vehicle", "Rejected modded vehicle spawn "..data.name)
     return
   end
 
   local away = true
-  if kisstransform.raw_transforms[data.server_id] then
-    away = (vec3(kisstransform.raw_transforms[data.server_id].position):distance(vec3(getCameraPosition())) > kissui.view_distance[0])
-  else
-    away = (vec3(data.position):distance(vec3(getCameraPosition())) > kissui.view_distance[0])
+  local view_distance = kissui.enable_view_distance[0] and kissui.view_distance[0] * kissui.view_distance[0] or nil
+  if view_distance then
+    if kisstransform.raw_transforms[data.server_id] then
+      local position = kisstransform.raw_transforms[data.server_id].position
+      transform_pos:set(position[1], position[2], position[3])
+      away = transform_pos:squaredDistance(camera_pos) > view_distance
+    else
+      local position = data.position
+      transform_pos:set(position[1], position[2], position[3])
+      away = transform_pos:squaredDistance(camera_pos) > view_distance
+    end
   end
+
   if M.loading_map or M.delay_spawns then
-    print("Buffering vehicle")
+    log("D", "kissmp.vehiclemanager.spawn_vehicle", "Buffering vehicle")
     M.vehicle_buffer[data.server_id] = data
     return
-  elseif away and kissui.enable_view_distance[0] then
-    print("Buffering vehicle")
+  elseif away and view_distance then
+    log("D", "kissmp.vehiclemanager.spawn_vehicle", "Buffering vehicle")
     M.vehicle_buffer[data.server_id] = data
     return
   end
   if data.owner == network.get_client_id() then
-    print("Vehicle belongs to local client, setting ownership")
+    log("I", "kissmp.vehiclemanager.spawn_vehicle", "Vehicle belongs to local client, setting ownership")
     M.id_map[data.server_id] = data.in_game_id
     M.ownership[data.in_game_id] = data.server_id
     M.server_ids[data.in_game_id] = data.server_id
     update_ownership_limits()
-    be:getObjectByID(data.in_game_id):queueLuaCommand("extensions.hook('kissUpdateOwnership', true)")
+    getObjectByID(data.in_game_id):queueLuaCommand("extensions.hook('kissUpdateOwnership', true)")
     return
   end
   if M.id_map[data.server_id] then return end
-  local current_vehicle = be:getPlayerVehicle(0)
   local parts_config = jsonDecode(data.parts_config)
   local c = data.color
   local plate = data.plate
@@ -222,13 +232,12 @@ local function spawn_vehicle(data)
   local cp1 = data.palete_1
   local name = data.name
   if name == "unicycle" then
-    print("Attempt to spawn player")
     kissplayers.spawn_player(data)
     return
   end
-  
-  print("Attempt to spawn vehicle "..name)
-  local options = { 
+
+  log("D", "kissmp.vehiclemanager.spawn_vehicle", "Attempt to spawn vehicle "..name)
+  local options = {
     vehicleName = "mp_veh",
     pos = vec3(data.position),
     rot = quat(data.rotation),
@@ -239,7 +248,7 @@ local function spawn_vehicle(data)
     autoEnterVehicle = false
   }
   options = sanitizeVehicleSpawnOptions(name, options)
-  
+
   local spawned = spawn.spawnVehicle(name, options.config, options.pos, options.rot, options)
   if not spawned then return end
   local p = data.position
@@ -257,6 +266,7 @@ end
 
 local function onUpdate(dt)
   if not network.connection.connected then return end
+  camera_pos:set(core_camera.getPositionXYZ())
   if (getMissionFilename():lower() ~= network.connection.server_info.map:lower()) and (getMissionPath():lower() ~= network.connection.server_info.map:lower()) and not M.loading_map then
     network.disconnect()
   end
@@ -273,7 +283,7 @@ local function onUpdate(dt)
   else
     timer = timer - tick_time
     for i, v in pairs(vehiclemanager.ownership) do
-      local vehicle = be:getObjectByID(i)
+      local vehicle = getObjectByID(i)
       if vehicle and (not kisstransform.inactive[i]) then
         send_vehicle_update(vehicle)
         vehicle:queueLuaCommand("kiss_electrics.send()")
@@ -283,17 +293,19 @@ local function onUpdate(dt)
 
   for k, v in pairs(M.id_map) do
     if not M.ownership[v] then
-      local vehicle = be:getObjectByID(v)
+      local vehicle = getObjectByID(v)
       if vehicle and (not kisstransform.inactive[v]) then
         vehicle:queueLuaCommand("kiss_vehicle.update_eligible_nodes()")
       end
     end
   end
   if not (M.loading_map or M.delay_spawns) then
+    local view_distance = kissui.enable_view_distance[0] and kissui.view_distance[0] * kissui.view_distance[0] or nil
     local to_remove = {}
     for k, vehicle in pairs(M.vehicle_buffer) do
       local t = kisstransform.raw_transforms[k]
-      if t and not ((vec3(t.position):distance(vec3(getCameraPosition())) > kissui.view_distance[0]) and kissui.enable_view_distance[0]) then
+      transform_pos:set(t.position[1], t.position[2], t.position[3])
+      if t and not (view_distance and transform_pos:squaredDistance(camera_pos) > view_distance) then
         spawn_vehicle(vehicle)
         table.insert(to_remove, k)
       end
@@ -306,22 +318,34 @@ end
 
 local function update_vehicle(data)
   kisstransform.raw_transforms[data.vehicle_id] = data.transform
-    -- If vehicle is a unicycle(Walking mode character), sync it differently
+  -- If vehicle is a unicycle(Walking mode character), sync it differently
   local character = kissplayers.players[data.vehicle_id]
   if character then
-    kissplayers.player_transforms[data.vehicle_id].target_position = vec3(data.transform.position)
-    kissplayers.player_transforms[data.vehicle_id].rotation = data.transform.rotation
-    kissplayers.player_transforms[data.vehicle_id].velocity = vec3(data.transform.velocity)
-    kissplayers.player_transforms[data.vehicle_id].time_past = clamp(get_current_time() - data.sent_at, 0, 0.3) + 0.0001
+    local character_transforms = kissplayers.player_transforms[data.vehicle_id]
+    if not character_transforms then
+      character_transforms = {
+        target_position = vec3(),
+        rotation = {},
+        velocity = vec3()
+      }
+      kissplayers.player_transforms[data.vehicle_id] = character_transforms
+    end
+
+    local temp = data.transform.position
+    character_transforms.target_position:set(temp[1], temp[2], temp[3])
+    character_transforms.rotation = data.transform.rotation
+    temp = data.transform.velocity
+    character_transforms.velocity:set(temp[1], temp[2], temp[3])
+    character_transforms.time_past = clamp(get_current_time() - data.sent_at, 0, 0.3) + 0.0001
     return
   end
- 
+
   local id = M.id_map[data.vehicle_id]
   if not id then return end
   if M.ownership[id] then return end
   if data.generation <= (M.packet_gen_buffer[id] or -1) then return end
   M.packet_gen_buffer[id] = data.generation
-  local vehicle = be:getObjectByID(id)
+  local vehicle = getObjectByID(id)
   if not vehicle then return end
 
   kisstransform.update_vehicle_transform(data)
@@ -343,7 +367,7 @@ local function remove_vehicle(data)
     return
   end
   local local_id = M.id_map[id] or -1
-  local vehicle = be:getObjectByID(local_id)
+  local vehicle = getObjectByID(local_id)
   if vehicle then
     vehicle:setActive(1)
     vehicle:delete()
@@ -360,11 +384,11 @@ end
 local function reset_vehicle(data)
   local id = data.vehicle_id
   id = M.id_map[id] or -1
-  
+
   local position = data.position
   local rotation = data.rotation
-  
-  local vehicle = be:getObjectByID(id)
+
+  local vehicle = getObjectByID(id)
   if not vehicle then return end
   if vehicle then
     vehicle:reset()
@@ -383,10 +407,10 @@ end
 local function update_vehicle_meta(data)
   local id = M.id_map[data.vehicle_id or -1] or -1
   if M.ownership[id] then return end
-  local vehicle = be:getObjectByID(id)
+  local vehicle = getObjectByID(id)
   if not vehicle then return end
   local plate = data.plate
-  
+
   local color = data.colors_table[1]
   local palete_0 = data.colors_table[2]
   local palete_1 = data.colors_table[3]
@@ -403,7 +427,7 @@ local function update_vehicle_meta(data)
   -- Apply colors
   local vd = extensions.core_vehicle_manager.getVehicleData(id)
   if not vd or not vd.config or not vd.config.paints then return end
-  
+
   for i=1,3 do
     local ct = color_tables[i]
     vd.config.paints[i] =  table_to_paint(ct)
@@ -415,7 +439,7 @@ end
 local function electrics_diff_update(data)
   local id = M.id_map[data[1] or -1]
   if id and not M.ownership[id] then
-    local vehicle = be:getObjectByID(id)
+    local vehicle = getObjectByID(id)
     if not vehicle then return end
     local data = data[2].diff
     vehicle:queueLuaCommand(string.format(
@@ -448,20 +472,36 @@ local function detach_coupler_inner(buffer_data)
   )
 end
 
+local tempVec1 = vec3()
+local tempVec2 = vec3()
+local nodeAPos = vec3()
+local nodeBPos = vec3()
+local distanceThreshold = 15 * 15
 local function attach_coupler(data)
   local obj_a = M.id_map[data.obj_a]
   local obj_b = M.id_map[data.obj_b]
   if obj_a and obj_b then
     if M.ownership[obj_a] then return end
-    local vehicle = be:getObjectByID(obj_a)
-    local vehicle_b = be:getObjectByID(obj_b)
-    if not vehicle then return end
-    if not vehicle_b then return end
-    if vec3(vehicle:getPosition()):distance(vec3(vehicle_b:getPosition())) > 15 then return end
-    local node_a_pos = vec3(vehicle:getPosition()) + vec3(vehicle:getNodePosition(data.node_a_id))
-    local node_b_pos = vec3(vehicle_b:getPosition()) + vec3(vehicle_b:getNodePosition(data.node_b_id))
-    local pos = vec3(vehicle_b:getPosition()) + (node_a_pos - node_b_pos)
-    vehicle_b:setPositionNoPhysicsReset(Point3F(pos.x, pos.y, pos.z))
+    local vehicle = getObjectByID(obj_a)
+    local vehicle_b = getObjectByID(obj_b)
+    if not vehicle or not vehicle_b then return end
+
+    tempVec1:set(vehicle:getPositionXYZ())
+    tempVec2:set(vehicle_b:getPositionXYZ())
+    if tempVec1:squaredDistance(tempVec2) > distanceThreshold then return end
+
+    --[[
+    local node_a_pos = vehicle:getNodeAbsPosition(data.node_a_id)
+    local node_b_pos = vehicle_b:getNodeAbsPosition(data.node_b_id)
+    local pos = vehicle_b:getPosition() + (node_a_pos - node_b_pos)
+    ]]
+
+    nodeAPos:set(vehicle:getNodeAbsPositionXYZ(data.node_a_id))
+    nodeBPos:set(vehicle_b:getNodeAbsPositionXYZ(data.node_b_id))
+    tempVec2:setAdd(nodeAPos)
+    tempVec2:setSub(nodeBPos)
+
+    vehicle_b:setPositionNoPhysicsReset(tempVec2)
     vehicle_b:queueLuaCommand("kiss_couplers.attach_coupler("..data.node_b_id..")")
     onCouplerAttached(obj_a, obj_b, data.node_a_id, data.node_b_id)
   end
@@ -472,11 +512,14 @@ local function detach_coupler(data)
   local obj_b = M.id_map[data.obj_b]
   if obj_a and obj_b then
     if M.ownership[obj_a] then return end
-    local vehicle = be:getObjectByID(obj_a)
-    local vehicle_b = be:getObjectByID(obj_b)
-    if not vehicle then return end
-    if not vehicle_b then return end
-    if vehicle_ ~= vehicle_b and vec3(vehicle:getPosition()):distance(vec3(vehicle_b:getPosition())) > 15 then return end
+    local vehicle = getObjectByID(obj_a)
+    local vehicle_b = getObjectByID(obj_b)
+    if not vehicle or not vehicle_b then return end
+
+    tempVec1:set(vehicle:getPositionXYZ())
+    tempVec2:set(vehicle_b:getPositionXYZ())
+    if tempVec1:squaredDistance(tempVec2) > distanceThreshold then return end
+
     vehicle:queueLuaCommand("kiss_couplers.detach_coupler("..data.node_a_id..")")
     onCouplerDetached(obj_a, obj_b, data.node_a_id, data.node_b_id)
     onCouplerDetach(obj_a, data.node_a_id)
@@ -486,15 +529,16 @@ end
 
 local function set_position(data)
   local id = M.id_map[data[1] or -1] or -1
-  local vehicle = be:getObjectByID(id)
+  local vehicle = getObjectByID(id)
   if vehicle then
-    vehicle:setPositionNoPhysicsReset(Point3F(data[2][1], data[2][2], data[2][3]))
+    tempVec1:set(data[2][1], data[2][2], data[2][3])
+    vehicle:setPositionNoPhysicsReset(tempVec1)
   end
 end
 
 local function set_position_rotation(data)
   local id = M.id_map[data[1] or -1] or -1
-  local vehicle = be:getObjectByID(id)
+  local vehicle = getObjectByID(id)
   if vehicle then
     vehicle:setPosRot(data[2][1], data[2][2], data[2][3], data[3][1], data[3][2], data[3][3], data[3][4])
   end
@@ -502,7 +546,7 @@ end
 
 local function reset_in_place(data)
   local id = M.id_map[data or -1] or -1
-  local vehicle = be:getObjectByID(id)
+  local vehicle = getObjectByID(id)
   if vehicle then
     vehicle:reset()
   end
@@ -510,10 +554,11 @@ end
 
 local function onVehicleSpawned(id)
   if not network.connection.connected then return end
-  local vehicle = be:getObjectByID(id)
-  local position = vehicle:getPosition()
+  local vehicle = getObjectByID(id)
+  tempVec1:set(vehicle:getPositionXYZ())
   if first_vehicle then
-    vehicle:setPosition(Point3F(position.x + math.random(-5, 5), position.y + math.random(-5, 5), position.z))
+    tempVec2:set(tempVec1.x + math.random(-5, 5), tempVec1.y + math.random(-5, 5), tempVec1.z)
+    vehicle:setPosition(tempVec2)
     vehicle:queueLuaCommand("recovery.saveHome()")
     first_vehicle = false
   end
@@ -522,9 +567,8 @@ local function onVehicleSpawned(id)
   send_vehicle_config(id)
   -- Attempt to workaround a bug from latest beamng update. Also prevents unicycle cloning(Somewhat)
   if vehicle:getJBeamFilename() == "unicycle" then
-    for i = 0, be:getObjectCount() do
-      local v = be:getObject(i)
-      if v and (v:getID() ~= vehicle:getID()) and (v:getJBeamFilename() == "unicycle") then
+    for vid, v in vehiclesIterator() do
+      if v:getJBeamFilename() == "unicycle" and vid ~= vehicle:getID() then
         v:delete()
       end
     end
@@ -549,11 +593,9 @@ end
 local function onVehicleResetted(id)
   if not network.connection.connected then return end
   if M.ownership[id] then
-    local vehicle = be:getObjectByID(id)
-    local rotation = quat(vehicle:getRefNodeMatrix():toQuatF())
-    local position = vec3(vehicle:getPosition())
-    local data = { vehicle_id = id, position = {position.x, position.y, position.z}, rotation = {rotation.x, rotation.y, rotation.z, rotation.w}}
-    
+    local vehicle = getObjectByID(id)
+    local data = { vehicle_id = id, position = {vehicle:getPositionXYZ()}, rotation = vehicle:getRefNodeRotation():toTable()}
+
     network.send_data(
       {
         ResetVehicle = data,
@@ -564,9 +606,8 @@ local function onVehicleResetted(id)
 end
 
 local function onVehicleSwitched(_id, new_id)
-  for i = 0, be:getObjectCount() do
-    local v = be:getObject(i)
-    if v and (v:getID() ~= new_id) and (v:getJBeamFilename() == "unicycle") then
+  for vid, v in vehiclesIterator() do
+    if v:getJBeamFilename() == "unicycle" and vid ~= new_id then
       v:delete()
     end
   end
