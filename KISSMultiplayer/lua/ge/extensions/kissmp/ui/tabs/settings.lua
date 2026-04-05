@@ -108,7 +108,7 @@ local function draw(dt)
       if ffi.string(confirm_player_name) == ffi.string(kissui.player_name) then
         kissconfig.set_setting("security.public_scripting", config_items["security.public_scripting"][0])
         kissconfig.set_setting("security.public_mods", config_items["security.public_mods"][0])
-        confirm_player_name = im.ArrayChar(32, "")
+        ffi.copy(confirm_player_name, "")
         confirm_timer = 5
         confirm_popup_active = false
         im.CloseCurrentPopup()
@@ -122,7 +122,7 @@ local function draw(dt)
   elseif confirm_popup_active then -- user closed it
     config_items["security.public_scripting"][0] = kissconfig.get_setting("security.public_scripting")
     config_items["security.public_mods"][0] = kissconfig.get_setting("security.public_mods")
-    confirm_player_name = im.ArrayChar(32, "")
+    ffi.copy(confirm_player_name, "")
     confirm_timer = 5
     confirm_popup_active = false
   end

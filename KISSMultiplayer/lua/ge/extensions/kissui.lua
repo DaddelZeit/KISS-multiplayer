@@ -99,8 +99,8 @@ local function onUpdate(dt)
 end
 
 local function onKissMPSettingsChanged(config)
-  M.addr = imgui.ArrayChar(32, config["ui.addr"])
-  M.player_name = imgui.ArrayChar(32, config["ui.name"])
+  ffi.copy(M.addr, config["ui.addr"] or "")
+  ffi.copy(M.player_name, config["ui.name"] or "")
   M.window_opacity = config["ui.window_opacity"]
   names_visible = config["players.show_nametags"]
 
