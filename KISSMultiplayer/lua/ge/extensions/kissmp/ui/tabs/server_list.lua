@@ -1,7 +1,6 @@
 local M = {}
 local imgui = ui_imgui
 local http = require("socket.http")
-http.TIMEOUT = 0.5
 local version = require("lua/ge/extensions/kissmp/version")
 local VERSION_PRTL = version.VERSION_STR
 
@@ -187,8 +186,8 @@ local function draw(dt)
       draw_server_description(server.description)
       imgui.PopTextWrapPos()
       if imgui.Button("Connect###connect_button_" .. tostring(server_count)) then
-        kissconfig.save_config()
         local player_name = ffi.string(kissui.player_name)
+        kissconfig.set_setting("ui.name", player_name)
         network.connect(addr, player_name, true)
       end
 

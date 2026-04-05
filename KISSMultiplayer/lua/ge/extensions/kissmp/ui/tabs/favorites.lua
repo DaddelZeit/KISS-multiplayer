@@ -181,8 +181,8 @@ local function draw()
 
       imgui.PopTextWrapPos()
       if imgui.Button("Connect###connect_button_" .. tostring(favorites_count)) then
-        kissconfig.save_config()
         local player_name = ffi.string(kissui.player_name)
+        kissconfig.set_setting("ui.name", player_name)
         -- if it was added manually (direct IP), trust it (false); otherwise, it's public (true)
         network.connect(addr, player_name, not server.added_manually)
       end

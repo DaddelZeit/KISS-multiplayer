@@ -15,7 +15,7 @@ M.tabs = {
 
 M.dependencies = {"ui_imgui"}
 
-M.master_addr = "http://kissmp.thehellbox.ru:3692/"
+M.master_addr = "http://kissmp.online:3692/"
 M.bridge_launched = false
 
 M.show_download = false
@@ -32,15 +32,12 @@ M.gui = {setupEditorGuiTheme = nop}
 local imgui = ui_imgui
 
 local ui_showing = false
+local names_visible = false
 
 -- TODO: Move all this somewhere else. Some of settings aren't even related to UI
 M.addr = imgui.ArrayChar(128)
 M.player_name = imgui.ArrayChar(32, "Unknown")
-M.show_nametags = imgui.BoolPtr(true)
-M.show_drivers = imgui.BoolPtr(true)
-M.window_opacity = imgui.FloatPtr(0.8)
-M.enable_view_distance = imgui.BoolPtr(true)
-M.view_distance = imgui.IntPtr(300)
+M.window_opacity = 0.8
 
 local function show_ui()
   M.gui.showWindow("KissMP")
@@ -91,14 +88,30 @@ local function onUpdate(dt)
   main_window.draw(dt)
   M.chat.draw()
   M.download_window.draw()
+
   if M.incorrect_install then
-     draw_incorrect_install()
+    draw_incorrect_install()
   end
-  if (not M.force_disable_nametags) and M.show_nametags[0] then
+
+  if not M.force_disable_nametags and names_visible then
     names.draw()
   end
 end
 
+local function onKissMPSettingsChanged(config)
+  M.addr = imgui.ArrayChar(32, config["ui.addr"])
+  M.player_name = imgui.ArrayChar(32, config["ui.name"])
+  M.window_opacity = config["ui.window_opacity"]
+  names_visible = config["players.show_nametags"]
+
+  for _, v in pairs(M.tabs) do
+    if v.onKissMPSettingsChanged then
+      v.onKissMPSettingsChanged(config)
+    end
+  end
+end
+
+M.onKissMPSettingsChanged = onKissMPSettingsChanged
 M.onExtensionLoaded = open_ui
 M.onUpdate = onUpdate
 

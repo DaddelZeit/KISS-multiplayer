@@ -1,0 +1,13 @@
+{
+  "header": {
+    "version": 2
+  },
+  "data": {
+    "perf.enable_view_distance": false,
+    "perf.view_distance": 200,
+    "players.show_drivers": true,
+    "players.show_nametags": true,
+    "ui.addr": "",
+    "ui.window_opacity": 0.80000001192093
+  }
+}

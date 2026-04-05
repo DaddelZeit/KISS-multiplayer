@@ -568,6 +568,10 @@ local function onUpdate(dt)
   end
 end
 
+local function onKissMPSettingsChanged(config)
+  M.base_secret = config["security.base_secret_v2"]
+end
+
 local function get_client_id()
   return M.connection.client_id
 end
@@ -579,5 +583,6 @@ M.cancel_download = cancel_download
 M.send_data = send_data
 M.onUpdate = onUpdate
 M.onExtensionLoaded = onExtensionLoaded
+M.onKissMPSettingsChanged = onKissMPSettingsChanged
 
 return M

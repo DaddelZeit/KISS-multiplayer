@@ -8,7 +8,8 @@ local function draw()
   if imgui.Button("Connect") then
     local addr = ffi.string(kissui.addr)
     local player_name = ffi.string(kissui.player_name)
-    kissconfig.save_config()
+    kissconfig.set_setting("ui.name", player_name)
+    kissconfig.set_setting("ui.addr", addr)
     network.connect(addr, player_name, false)
   end
 end
