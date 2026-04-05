@@ -66,7 +66,10 @@ local function set_setting(id, val)
 end
 
 local function get_setting(id)
-  return config[id] == nil and defaults[id] or config[id]
+  if config[id] == nil then
+    return defaults[id]
+  end
+  return config[id]
 end
 
 local function load_config()
