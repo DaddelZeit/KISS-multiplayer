@@ -38,7 +38,7 @@ local function draw(dt)
         imgui.EndTabItem()
       end
       if imgui.BeginTabItem("Settings") then
-        kissui.tabs.settings.draw()
+        kissui.tabs.settings.draw(dt)
         imgui.EndTabItem()
       end
       imgui.EndTabBar()
