@@ -50,7 +50,7 @@ end
 local function find_map_real_path(map_path)
   local patterns = {"info.json", "*.mis"}
   local found_file = map_path
-  
+
   for _,pattern in pairs(patterns) do
     local files = FS:findFiles(map_path, pattern, 1)
     if #files > 0 then
@@ -58,7 +58,6 @@ local function find_map_real_path(map_path)
       break
     end
   end
-  print(found_file)
   return FS:virtual2Native(found_file)
 end
 
@@ -74,19 +73,16 @@ local function change_map(map_info, title)
 
   --
   local map_path = map_info.misFilePath
-  print(map_path)
   M.map = map_path
   M.map_name = title or map_info.levelName
 
   local native = find_map_real_path(map_path)
-  print(native)
   local _, zip_end = string.find(native, ".zip")
   local _, is_mod = string.find(native, "mods")
   if zip_end and is_mod then
     local mod_file = string.sub(native, 1, zip_end)
-    print(mod_file)
     local virtual = to_non_lowered(FS:native2Virtual(mod_file))
-    
+
     pre_forced_mods_state[virtual] = (M.mods[virtual] ~= nil)
     M.mods[virtual] = FS:virtual2Native(virtual)
     forced_mods[virtual] = true
@@ -95,23 +91,23 @@ end
 
 local function checkbox(id, checked, allow_click)
   if allow_click == nil then allow_click = allow_click or true end
-  
+
   if not allow_click then imgui.PushStyleVar1(imgui.StyleVar_Alpha, 0.70) end
   local return_value = imgui.Checkbox(id, checked)
   if not allow_click then imgui.PopStyleVar() end
-  
+
   if allow_click then return return_value else return false end
 end
 
 local function draw()
   imgui.Text("Server name:")
   imgui.InputText("##host_server_name", M.server_name)
-  
+
   imgui.Text("Max players:")
   if imgui.InputInt("###host_max_players", M.max_players) then
     M.max_players[0] = math.max(1, math.min(255, M.max_players[0]))
   end
-  
+
   imgui.Text("Map:")
   if imgui.BeginCombo("###host_map", M.map_name) then
     for k, v in pairs(core_levels.getList()) do
@@ -138,7 +134,7 @@ local function draw()
     if not kissmods.is_special_mod(v) then
       local forced = forced_mods[v] or false
       local checked = imgui.BoolPtr(M.mods[v] ~= nil or forced)
-      
+
       if checkbox(v.."###host_mod"..k, checked, not forced) then
         if checked[0] and not M.mods[v] then
           M.mods[v] = FS:virtual2Native(v)

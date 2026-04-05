@@ -1,16 +1,19 @@
 local M = {}
+
+local string_buffer = require("string.buffer")
+
 local ownership = false
 local ignore_attachment = false
 local ignore_detachment = false
 
 local ignored_couplers = {}
 
-local function ignore_coupler_node(node) 
+local function ignore_coupler_node(node)
   ignored_couplers[node] = true
 end
 
 local function attach_coupler(node)
-  local node = v.data.nodes[node]
+  node = v.data.nodes[node]
   obj:attachCoupler(node.cid, node.couplerTag or "", node.couplerStrength or 1000000, node.couplerRadius or 0.2, 0, node.couplerLatchSpeed or 0.3, node.couplerTargets or 0)
   ignore_attachment = true
 end
@@ -28,12 +31,14 @@ local function onCouplerAttached(node_id, obj2_id, obj2_node_id)
     return
   end
   local data = {
-    obj_a = obj:getID(),
+    obj_a = objectId,
     obj_b = obj2_id,
     node_a_id = node_id,
     node_b_id = obj2_node_id
   }
-  obj:queueGameEngineLua("vehiclemanager.attach_coupler_inner(\'"..jsonEncode(data).."\')")
+  obj:queueGameEngineLua(string.format(
+    "vehiclemanager.attach_coupler_inner(%q)",
+    string_buffer.encode(data)))
 end
 
 local function onCouplerDetached(node_id, obj2_id, obj2_node_id)
@@ -44,12 +49,14 @@ local function onCouplerDetached(node_id, obj2_id, obj2_node_id)
     return
   end
   local data = {
-    obj_a = obj:getID(),
+    obj_a = objectId,
     obj_b = obj2_id,
     node_a_id = node_id,
     node_b_id = obj2_node_id
   }
-   obj:queueGameEngineLua("vehiclemanager.detach_coupler_inner(\'"..jsonEncode(data).."\')")
+  obj:queueGameEngineLua(string.format(
+    "vehiclemanager.detach_coupler_inner(%q)",
+    string_buffer.encode(data)))
 end
 
 local function kissUpdateOwnership(owned)
