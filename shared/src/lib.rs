@@ -90,6 +90,7 @@ pub enum ClientCommand {
     CouplerAttached(CouplerAttached),
     CouplerDetached(CouplerDetached),
     ElectricsUndefinedUpdate(u32, ElectricsUndefined),
+    ControllersUndefinedUpdate(u32, SerializedUndefined),
     VoiceChatPacket(Vec<u8>),
     // Only used by bridge
     SpatialUpdate([f32; 3], [f32; 3]),
@@ -121,6 +122,7 @@ pub enum ServerCommand {
     CouplerAttached(CouplerAttached),
     CouplerDetached(CouplerDetached),
     ElectricsUndefinedUpdate(u32, ElectricsUndefined),
+    ControllersUndefinedUpdate(u32, SerializedUndefined),
     ServerInfo(ServerInfo),
     FilePart(String, Vec<u8>, u32, u32, u32),
     VoiceChatPacket(u32, [f32; 3], Vec<u8>),

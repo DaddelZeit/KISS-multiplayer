@@ -225,6 +225,28 @@ impl Server {
                             }
                         }
                     }
+                    ControllersUndefinedUpdate(vehicle_id, undefined_update) => {
+                        if let Some(server_id) =
+                            self.get_server_id_from_game_id(client_id, vehicle_id)
+                        {
+                            /* if let Some(vehicle) = self.vehicles.get_mut(&server_id) {
+                                for (key, value) in &undefined_update.diff {
+                                    if let Some(electrics) = &mut vehicle.electrics {
+                                        electrics.undefined.insert(key.clone(), *value);
+                                    }
+                                }
+                            }*/
+                            for (_, client) in &mut self.connections {
+                                let _ = client
+                                    .ordered
+                                    .send(ServerCommand::ControllersUndefinedUpdate(
+                                        server_id,
+                                        undefined_update.clone(),
+                                    ))
+                                    .await;
+                            }
+                        }
+                    }
                     Ping(ping) => {
                         let connection = self.connections.get_mut(&client_id).unwrap();
                         connection.client_info_public.ping = ping as u32;

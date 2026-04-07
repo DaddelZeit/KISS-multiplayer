@@ -6,6 +6,11 @@ pub struct ElectricsUndefined {
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+pub struct SerializedUndefined {
+    pub diff: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct Electrics {
     pub throttle_input: f32,
     pub brake_input: f32,

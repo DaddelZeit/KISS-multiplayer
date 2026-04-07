@@ -201,6 +201,7 @@ local function onExtensionLoaded()
   message_handlers.CouplerAttached = vehiclemanager.attach_coupler
   message_handlers.CouplerDetached = vehiclemanager.detach_coupler
   message_handlers.ElectricsUndefinedUpdate = vehiclemanager.electrics_diff_update
+  message_handlers.ControllersUndefinedUpdate = vehiclemanager.controllers_diff_update
 
   message_handlers.VehicleSetPosition = vehiclemanager.set_position
   message_handlers.VehicleSetPositionRotation = vehiclemanager.set_position_rotation
