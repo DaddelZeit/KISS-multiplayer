@@ -315,7 +315,22 @@ local function onExtensionLoaded()
     local jbeamCustomValues = electrics_jbeam.customValues or {}
     for _, value in ipairs(tableFromHeaderTable(jbeamCustomValues)) do
       ignored_keys[value.electricsName] = true
-      dump(value.electricsName)
+    end
+  end
+
+  -- Ignore pneumatic states
+  for k,v in ipairs(controller.getControllersByType("pneumatics/airbrakes")) do
+    ignored_keys[v.name.."_pressure_service"] = true
+    ignored_keys[v.name.."_pressure_parking"] = true
+  end
+
+  for k,v in pairs(energyStorage.getStorages()) do
+    if v.type == "pressureTank" then
+      ignored_keys[v.pressureElectricName] = true
+      ignored_keys[v.pressureConsumerElectricName] = true
+      ignored_keys[v.pressureConsumerCoefElectricName] = true
+      ignored_keys[v.pneumaticPTOConsumerPressureElectricsName] = true
+      ignored_keys[v.pneumaticPTOConsumerFlowElectricsName] = true
     end
   end
 end
