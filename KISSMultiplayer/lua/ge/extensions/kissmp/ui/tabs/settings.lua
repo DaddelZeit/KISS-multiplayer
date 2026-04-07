@@ -42,6 +42,7 @@ end
 local function draw(dt)
   im.Text("User Interface")
   im.Separator()
+  render_sliderF("Interface Scale", "ui.scale", 0.25, 2)
   render_sliderF("Window Opacity", "ui.window_opacity", 0, 1)
 
   im.NewLine()
@@ -129,6 +130,7 @@ local function draw(dt)
 end
 
 local function onKissMPSettingsChanged(config)
+  config_items["ui.scale"] = im.FloatPtr(config["ui.scale"])
   config_items["ui.window_opacity"] = im.FloatPtr(config["ui.window_opacity"])
 
   config_items["players.show_nametags"] = im.BoolPtr(config["players.show_nametags"])

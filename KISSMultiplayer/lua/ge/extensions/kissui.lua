@@ -1,5 +1,7 @@
 local M = {}
 
+local imgui_utils = require("ui/imguiUtils")
+
 local main_window = require("kissmp.ui.main")
 M.chat = require("kissmp.ui.chat")
 M.download_window = require("kissmp.ui.download")
@@ -33,8 +35,8 @@ local imgui = ui_imgui
 
 local ui_showing = false
 local names_visible = false
+local uiscale = 1
 
--- TODO: Move all this somewhere else. Some of settings aren't even related to UI
 M.addr = imgui.ArrayChar(128)
 M.player_name = imgui.ArrayChar(32, "Unknown")
 M.window_opacity = 0.8
@@ -85,6 +87,11 @@ local function onUpdate(dt)
   if getMissionFilename() ~= '' and not vehiclemanager.is_network_session then
     return
   end
+
+  local prev_ui_Scale = imgui.uiscale[0]
+  imgui_utils.changeUIScale(uiscale)
+  imgui.PushFont3("segoeui_regular") -- update font size
+
   main_window.draw(dt)
   M.chat.draw()
   M.download_window.draw()
@@ -96,12 +103,16 @@ local function onUpdate(dt)
   if not M.force_disable_nametags and names_visible then
     names.draw()
   end
+
+  imgui_utils.changeUIScale(prev_ui_Scale)
+  imgui.PopFont() -- reset font size
 end
 
 local function onKissMPSettingsChanged(config)
   ffi.copy(M.addr, config["ui.addr"] or "")
   ffi.copy(M.player_name, config["ui.name"] or "")
   M.window_opacity = config["ui.window_opacity"]
+  uiscale = config["ui.scale"]
   names_visible = config["players.show_nametags"]
 
   for _, v in pairs(M.tabs) do

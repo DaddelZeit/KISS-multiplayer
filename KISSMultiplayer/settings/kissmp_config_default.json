@@ -10,6 +10,7 @@
     "security.public_mods": false,
     "security.public_scripting": false,
     "ui.addr": "",
+    "ui.scale": 1,
     "ui.window_opacity": 0.80000001192093
   }
 }
