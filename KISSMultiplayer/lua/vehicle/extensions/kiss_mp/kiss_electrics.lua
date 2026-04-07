@@ -261,22 +261,12 @@ local function onExtensionLoaded()
       elseif controller_data.fileName == "jato" then
         -- ignore jato fuel
         ignore_key("jatofuel")
-      elseif controller_data.fileName == "beaconSpin" and controller_data.electricsName then
+      elseif controller_data.fileName == "beaconSpin" then
         -- ignore beacon spin
-        ignore_key(controller_data.electricsName)
-      elseif controller_data.fileName == "driveModes" and controller_data.modes then
-        -- register handlers for syncing drive modes
-        for _, vm in pairs(controller_data.modes) do
-          if vm.settings then
-            for _, vs in pairs(vm.settings) do
-              if vs[1] == "electricsValue"  then
-                local electric = vs[2].electricsName
-                local drive_mode_controller = controller.getController(controller_data.name)
-                electrics_handlers[electric] = function(v) set_drive_mode(electric, drive_mode_controller, v) end
-              end
-            end
-          end
-        end
+        ignore_key(controller_data.electricsName or "beaconSpin")
+      elseif controller_data.fileName == "twoStepLaunch" then
+        -- ignore two step state
+        ignore_key(controller_data.electricsName or "twoStep")
       elseif controller_data.fileName == "advancedCouplerControl" then
         -- register handler for syncing advanced couplers
         local electric = controller_data.name .. "_notAttached"
