@@ -102,7 +102,9 @@ local ignored_keys = {
   dseRollOverStopped = true,
   dseCrashStopped = true,
   modeRangeBox = true,
-  mode4WD = true
+  mode4WD = true,
+  hasESC = true,
+  hasTCS = true,
 }
 
 local received_data = {}
