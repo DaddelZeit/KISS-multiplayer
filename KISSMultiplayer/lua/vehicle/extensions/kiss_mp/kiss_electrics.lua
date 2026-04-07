@@ -269,6 +269,10 @@ local function onExtensionLoaded()
       elseif controller_data.fileName == "twoStepLaunch" then
         -- ignore two step state
         ignore_key(controller_data.electricsName or "twoStep")
+      elseif controller_data.fileName == "nitrousOxideInjection" then
+        -- ignore nitrous
+        ignore_key(controller_data.electricsArmName or "nitrousOxideArm")
+        ignore_key(controller_data.electricsOverrideName or "nitrousOxideOverride")
       elseif controller_data.fileName == "advancedCouplerControl" then
         -- register handler for syncing advanced couplers
         local electric = controller_data.name .. "_notAttached"
