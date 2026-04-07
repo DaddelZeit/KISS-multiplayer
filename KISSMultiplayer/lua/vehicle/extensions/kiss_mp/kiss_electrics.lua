@@ -308,6 +308,16 @@ local function onExtensionLoaded()
   if _G["4ws"] and type(_G["4ws"]) == 'table' then
     ignored_keys["4ws"] = true
   end
+
+  -- Ignore custom JBeam electrics
+  local electrics_jbeam = v.data.electrics or v.data.components.electrics
+  if electrics_jbeam then
+    local jbeamCustomValues = electrics_jbeam.customValues or {}
+    for _, value in ipairs(tableFromHeaderTable(jbeamCustomValues)) do
+      ignored_keys[value.electricsName] = true
+      dump(value.electricsName)
+    end
+  end
 end
 
 local function kissUpdateOwnership(owned)
