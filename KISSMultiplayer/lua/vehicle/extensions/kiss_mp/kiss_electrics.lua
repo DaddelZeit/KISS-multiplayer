@@ -105,6 +105,8 @@ local ignored_keys = {
   mode4WD = true,
   hasESC = true,
   hasTCS = true,
+  alsActive = true,
+  alsState = true,
 }
 
 local received_data = {}
