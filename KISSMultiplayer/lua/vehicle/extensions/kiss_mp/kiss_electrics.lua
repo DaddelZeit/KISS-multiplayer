@@ -275,6 +275,9 @@ local function onExtensionLoaded()
         -- ignore nitrous
         ignore_key(controller_data.electricsArmName or "nitrousOxideArm")
         ignore_key(controller_data.electricsOverrideName or "nitrousOxideOverride")
+      elseif controller_data.fileName == "lineLock" then
+        -- ignore line lock state
+        ignore_key(controller_data.electricsName or "linelock")
       elseif controller_data.fileName == "advancedCouplerControl" then
         -- register handler for syncing advanced couplers
         local electric = controller_data.name .. "_notAttached"
