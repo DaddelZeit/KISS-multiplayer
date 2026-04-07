@@ -280,6 +280,14 @@ local function onExtensionLoaded()
       elseif controller_data.fileName == "lineLock" then
         -- ignore line lock state
         ignore_key(controller_data.electricsName or "linelock")
+      elseif controller_data.fileName == "braking/compressionBrake" then
+        -- ignore compression brake state
+        local engine_name = controller_data.controlledEngine or "mainEngine"
+
+        ignore_key(controller_data.electricsNameActual or (engine_name .. "_compressionBrake_actual"))
+        ignore_key(controller_data.electricsNameSetting or (engine_name .. "_compressionBrake_setting"))
+        ignore_key(controller_data.electricsNameIsEnabled or (engine_name .. "_compressionBrake_isEnabled"))
+        ignore_key(controller_data.electricsNameLevelIndex or (engine_name .. "_compressionBrake_levelIndex"))
       elseif controller_data.fileName == "advancedCouplerControl" then
         -- register handler for syncing advanced couplers
         local electric = controller_data.name .. "_notAttached"
