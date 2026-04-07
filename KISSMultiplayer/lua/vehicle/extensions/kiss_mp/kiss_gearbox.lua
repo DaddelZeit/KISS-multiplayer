@@ -11,18 +11,12 @@ local function get_gearbox_data()
   local state = mainController.getState()
   local data = {
     vehicle_id = objectId,
-    lock_coef = gearbox and gearbox.lockCoef or 0,
+    lock_coef = gearbox and gearbox.lockCoef or 1,
+    grb_idx = state.grb_idx ~= nil and state.grb_idx or 0,
+    grb_mde = state.grb_mde ~= nil and state.grb_mde or "",
+    grb_bhv = state.grb_bhv ~= nil and state.grb_bhv or "arcade",
+    frzn = state.frzn ~= nil and state.frzn or false,
   }
-
-  if not state.grb_idx then
-    state.grb_idx = 0
-  end
-
-  if not state.grb_mde then
-    state.grb_mde = ""
-  end
-
-  tableMerge(data, state)
 
   return data
 end
