@@ -103,29 +103,41 @@ local ignored_keys = {
   dseCrashStopped = true
 }
 
-local electrics_handlers = {}
+local received_data = {}
+
+local electrics_handlers = {
+  lights_state = function(v)
+    electrics.setLightsState(v)
+  end,
+  fog = function(v)
+    electrics.set_fog_lights(v)
+  end,
+  lightbar = function(v)
+    electrics.set_lightbar_signal(v)
+  end,
+  horn = function(v)
+    electrics.horn(v > 0.5)
+  end,
+  ignitionLevel = function(v)
+    electrics.setIgnitionLevel(v)
+  end,
+  engineRunning = function(v)
+    if v == 1 and received_data.ignitionLevel >= 2 then
+      controller.mainController.setEngineIgnition(true)
+      controller.mainController.setStarter(true)
+    end
+  end,
+  hasABS = function(v)
+    if v > 0.5 then
+      wheels.setABSBehavior("realistic")
+    else
+      wheels.setABSBehavior("off")
+    end
+  end
+}
 
 local function ignore_key(key)
   ignored_keys[key] = true
-end
-
-local function update_engine_state()
-  if ownership then return end
-  if not electrics.values.engineRunning then return end
-  local engine_running = electrics.values.engineRunning > 0.5
-
-  -- Trigger starter to swap the engine state
-  if engine_running ~= last_engine_state then
-    controller.mainController.setStarter(true)
-  end
-end
-
-local function updateGFX(dt)
-  engine_timer = engine_timer + dt
-  if engine_timer > 5 then
-    update_engine_state()
-    engine_timer = engine_timer - 5
-  end
 end
 
 local function send()
@@ -196,11 +208,15 @@ end
 local function apply_diff(buffer_data)
   local diff = string_buffer.decode(buffer_data)
   apply_diff_signals(diff)
+
   for k, v in pairs(diff) do
+    received_data[k] = v
     electrics.values[k] = v
 
     local handler = electrics_handlers[k]
-    if handler then handler(v) end
+    if handler then
+      handler(v)
+    end
   end
 end
 
@@ -280,7 +296,7 @@ local function onExtensionLoaded()
 
   -- Ignore commonly used disp_* electrics used on vehicles with gear displays
   for k,v in pairs(electrics.values) do
-    if type(k) == 'string' and k:sub(1,5) == "disp_" then
+    if type(k) == 'string' and k:startswith("disp_") or k:startswith("auto_") then
       ignored_keys[k] = true
     end
   end
@@ -288,24 +304,6 @@ local function onExtensionLoaded()
   -- Ignore common extension/controller electrics
   if _G["4ws"] and type(_G["4ws"]) == 'table' then
     ignored_keys["4ws"] = true
-  end
-
-  -- Register handlers
-  electrics_handlers["lights_state"] = function(v) electrics.setLightsState(v) end
-  electrics_handlers["fog"] = function(v) electrics.set_fog_lights(v) end
-  electrics_handlers["lightbar"] = function(v) electrics.set_lightbar_signal(v) end
-  electrics_handlers["horn"] = function(v) electrics.horn(v > 0.5) end
-  electrics_handlers["hasABS"] = function(v)
-    if v > 0.5 then
-      wheels.setABSBehavior("realistic")
-    else
-      wheels.setABSBehavior("off")
-    end
-  end
-  electrics_handlers["engineRunning"] = function(v) 
-    last_engine_state = v > 0.5
-    update_engine_state()
-    engine_timer = 0
   end
 end
 
