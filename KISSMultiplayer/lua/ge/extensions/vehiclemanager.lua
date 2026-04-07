@@ -286,7 +286,7 @@ local function onUpdate(dt)
       local vehicle = getObjectByID(i)
       if vehicle and (not kisstransform.inactive[i]) then
         send_vehicle_update(vehicle)
-        vehicle:queueLuaCommand("kiss_electrics.send()")
+        vehicle:queueLuaCommand("kiss_electrics.send(); kiss_controllers.send()")
       end
     end
   end
@@ -441,10 +441,20 @@ local function electrics_diff_update(data)
   if id and not M.ownership[id] then
     local vehicle = getObjectByID(id)
     if not vehicle then return end
-    local data = data[2].diff
     vehicle:queueLuaCommand(string.format(
       "kiss_electrics.apply_diff(%q)",
-      string_buffer.encode(data)))
+      string_buffer.encode(data[2].diff)))
+  end
+end
+
+local function controllers_diff_update(data)
+  local id = M.id_map[data[1] or -1]
+  if id and not M.ownership[id] then
+    local vehicle = getObjectByID(id)
+    if not vehicle then return end
+    vehicle:queueLuaCommand(string.format(
+      "kiss_controllers.apply_diff(%q)",
+      string_buffer.encode(data[2].diff)))
   end
 end
 
@@ -649,6 +659,7 @@ M.onVehicleSwitched = onVehicleSwitched
 M.onMissionLoaded = onMissionLoaded
 M.onFreeroamLoaded = onMissionLoaded
 M.electrics_diff_update = electrics_diff_update
+M.controllers_diff_update = controllers_diff_update
 M.attach_coupler = attach_coupler
 M.detach_coupler = detach_coupler
 M.attach_coupler_inner = attach_coupler_inner
