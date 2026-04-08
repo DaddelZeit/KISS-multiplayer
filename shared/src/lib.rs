@@ -52,6 +52,8 @@ pub struct ServerInfo {
     pub max_vehicles_per_client: u8,
     pub mods: Vec<(String, u32)>,
     pub server_identifier: String,
+    pub require_scripts: bool,
+    pub require_mods: bool
 }
 
 impl ClientInfoPublic {

@@ -15,6 +15,8 @@ pub struct Config {
     pub server_identifier: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mods: Option<Vec<String>>,
+    pub require_scripts: bool,
+    pub require_mods: bool,
 }
 
 impl Default for Config {
@@ -31,6 +33,8 @@ impl Default for Config {
             upnp_enabled: false,
             server_identifier: rand_string(),
             mods: None,
+            require_scripts: false,
+            require_mods: false,
         }
     }
 }
