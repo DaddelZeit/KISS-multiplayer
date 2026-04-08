@@ -329,7 +329,15 @@ local function connect(addr, player_name, is_public)
   local server_info = jsonDecode(received).ServerInfo
   if not server_info then
     log("E", "kissmp.network.connect", "Failed to fetch server info. Aborting.")
+    disconnect()
     return
+  else
+    if (server_info.require_scripts and not public_scripting) or (server_info.require_mods and not public_mods) then
+      kissui.chat.add_message("Connection rejected: Missing permissions.", kissui.COLOR_RED)
+      log("E", "kissmp.network.connect", "Missing permissions. Server requirements do not match game settings.")
+      disconnect()
+      return
+    end
   end
   log("I", "kissmp.network.connect", "Server name: "..server_info.name)
   log("I", "kissmp.network.connect", "Player count: "..server_info.player_count)
