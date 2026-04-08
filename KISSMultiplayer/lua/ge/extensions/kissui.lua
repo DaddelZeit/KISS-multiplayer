@@ -1,7 +1,5 @@
 local M = {}
 
-local imgui_utils = require("ui/imguiUtils")
-
 local main_window = require("kissmp.ui.main")
 M.chat = require("kissmp.ui.chat")
 M.download_window = require("kissmp.ui.download")
@@ -83,13 +81,19 @@ local function draw_incorrect_install()
   imgui.End()
 end
 
+local function change_scale(new_uiscale)
+  imgui.uiscale[0] = new_uiscale
+  local io = imgui.GetIO(io)
+  imgui.ImGuiIO_FontGlobalScale(io, imgui.uiscale[0])
+end
+
 local function onUpdate(dt)
   if getMissionFilename() ~= '' and not vehiclemanager.is_network_session then
     return
   end
 
-  local prev_ui_Scale = imgui.uiscale[0]
-  imgui_utils.changeUIScale(uiscale)
+  local prev_ui_scale = imgui.uiscale[0]
+  change_scale(uiscale)
   imgui.PushFont3("segoeui_regular") -- update font size
 
   main_window.draw(dt)
@@ -104,7 +108,7 @@ local function onUpdate(dt)
     names.draw()
   end
 
-  imgui_utils.changeUIScale(prev_ui_Scale)
+  change_scale(prev_ui_scale)
   imgui.PopFont() -- reset font size
 end
 
@@ -112,7 +116,7 @@ local function onKissMPSettingsChanged(config)
   ffi.copy(M.addr, config["ui.addr"] or "")
   ffi.copy(M.player_name, config["ui.name"] or "")
   M.window_opacity = config["ui.window_opacity"]
-  uiscale = config["ui.scale"]
+  uiscale = config["ui.scale"] * imgui.GetWindowDpiScale()
   names_visible = config["players.show_nametags"]
 
   for _, v in pairs(M.tabs) do
