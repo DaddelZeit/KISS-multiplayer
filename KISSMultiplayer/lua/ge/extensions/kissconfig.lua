@@ -4,6 +4,7 @@ local queue_settings_save_timer = 0
 local target_config_version = 2
 local defaults = {}
 local config = {}
+local magic_config = {}
 
 local function generate_base_secret()
   math.randomseed(os.time() + os.clock())
@@ -62,7 +63,7 @@ end
 local function set_setting(id, val)
   config[id] = val
   queue_settings_save_timer = 2
-  extensions.hook("onKissMPSettingsChanged", config)
+  extensions.hook("onKissMPSettingsChanged", magic_config)
 end
 
 local function get_setting(id)
@@ -96,7 +97,6 @@ local function load_config()
     config["security.base_secret_v2"] = generate_base_secret()
   end
 
-  local magic_config = {}
   local mt = {
     __index = function(_, key)
       return get_setting(key)
