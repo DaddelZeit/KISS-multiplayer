@@ -74,8 +74,6 @@ local function filter_server_list(list, term, filter_notfull, filter_notempty, f
     end
 
     -- scripts/mods are not set by filter settings
-    dump("scripts", server_from_list.require_scripts, public_scripting)
-    dump("mods", server_from_list.require_mods, public_mods)
     if server_from_list.require_scripts and not public_scripting then
       discard = true
     end
