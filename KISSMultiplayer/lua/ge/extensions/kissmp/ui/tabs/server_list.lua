@@ -236,7 +236,7 @@ local function onKissMPSettingsChanged(config)
   public_scripting = config["security.public_scripting"]
   public_mods = config["security.public_mods"]
 
-  dump("onKissMPSettingsChanged", "server_list")
+  update_filtered_servers()
 end
 
 M.draw = draw
