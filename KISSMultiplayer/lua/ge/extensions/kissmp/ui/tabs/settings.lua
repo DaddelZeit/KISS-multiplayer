@@ -9,6 +9,14 @@ local confirm_popup_active = false
 local confirm_player_name = im.ArrayChar(32, "")
 local confirm_timer = 5
 
+local view_distance_name = ""
+local view_distances = {
+  {"Near", 100},
+  {"Balanced", 200},
+  {"Far", 250},
+  {"Very Far", 400}
+}
+
 local function render_checkbox(ui_name, setting_id)
   local checkbox_name = "###"..setting_id
   if ui_name then
@@ -19,22 +27,22 @@ local function render_checkbox(ui_name, setting_id)
   end
 end
 
-local function render_sliderF(ui_name, setting_id,  min, max)
+local function render_sliderF(ui_name, setting_id,  min, max, format)
   local slider_name = "###"..setting_id
   if ui_name then
     slider_name = ui_name..slider_name
   end
-  if im.SliderFloat(slider_name, config_items[setting_id],  min, max) then
+  if im.SliderFloat(slider_name, config_items[setting_id], min, max, format) then
     kissconfig.set_setting(setting_id, config_items[setting_id][0])
   end
 end
 
-local function render_sliderI(ui_name, setting_id, min, max)
+local function render_sliderI(ui_name, setting_id, min, max, format)
   local slider_name = "###"..setting_id
   if ui_name then
     slider_name = ui_name..slider_name
   end
-  if im.SliderInt(slider_name, config_items[setting_id],  min, max) then
+  if im.SliderInt(slider_name, config_items[setting_id], min, max, format) then
     kissconfig.set_setting(setting_id, config_items[setting_id][0])
   end
 end
@@ -60,7 +68,27 @@ local function draw(dt)
     im.BeginDisabled()
   end
   im.SameLine()
-  render_sliderI("View Distance", "perf.view_distance", 50, 500)
+  local cursorX = im.GetCursorPosX()
+  local distance = config_items["perf.view_distance"][0]
+  im.SetNextItemWidth(im.CalcTextSize(view_distance_name).x+im.GetTextLineHeight()+im.GetStyle().FramePadding.x*4)
+  if im.BeginCombo("Maximum Vehicle View Distance", view_distance_name) then
+    for _, v in ipairs(view_distances) do
+      if im.Selectable1(v[1], view_distance_name == v[1]) then
+        distance = v[2]
+        kissconfig.set_setting("perf.view_distance", distance)
+        view_distance_name = v[1]
+      end
+    end
+    if im.Selectable1("Custom", view_distance_name == "Custom") then
+      view_distance_name = "Custom"
+    end
+    im.EndCombo()
+  end
+  if view_distance_name == "Custom" then
+    im.SetCursorPosX(cursorX)
+    render_sliderI("##perf.view_distance", "perf.view_distance", 50, 500, "%dm")
+  end
+  im.SetCursorPosX(cursorX)
   im.PushTextWrapPos(0)
   im.Text("Warning: This feature is experimental. It can introduce a small, usually unnoticeable lag spike when approaching vehicles. It'll also block the ability to switch to vehicles outside of the view distance.")
   im.PopTextWrapPos()
@@ -142,6 +170,18 @@ local function onKissMPSettingsChanged(config)
 
   config_items["perf.enable_view_distance"] = im.BoolPtr(config["perf.enable_view_distance"])
   config_items["perf.view_distance"] = im.IntPtr(config["perf.view_distance"])
+
+  if view_distance_name ~= "Custom" then
+    local distance = config["perf.view_distance"]
+    for _, v in ipairs(view_distances) do
+      if distance == v[2] then
+        view_distance_name = v[1]
+        goto break_loop
+      end
+    end
+    view_distance_name = "Custom"
+    ::break_loop::
+  end
 
   if not confirm_popup_active then
     config_items["security.public_scripting"] = im.BoolPtr(config["security.public_scripting"])
