@@ -9,6 +9,14 @@ local confirm_popup_active = false
 local confirm_player_name = im.ArrayChar(32, "")
 local confirm_timer = 5
 
+local fade_distance_name = ""
+local fade_distances = {
+  {"Near", 50},
+  {"Balanced", 100},
+  {"Far", 250},
+  {"Very Far", 400}
+}
+
 local view_distance_name = ""
 local view_distances = {
   {"Near", 100},
@@ -57,7 +65,39 @@ local function draw(dt)
   im.Text("Player Visbility")
   im.Separator()
   render_checkbox("Show Players In Vehicles", "players.show_drivers")
+  im.NewLine()
   render_checkbox("Show Name Tags", "players.show_nametags")
+  render_checkbox("Use Player Colors in Name Tags", "players.nametags.colorful")
+  render_checkbox(nil, "players.nametags.fade")
+  local slider_active = config_items["players.nametags.fade"][0]
+  if not slider_active then
+    im.BeginDisabled()
+  end
+  im.SameLine()
+  local cursorX = im.GetCursorPosX()
+  local distance = config_items["players.nametags.fade"][0]
+  im.SetNextItemWidth(im.CalcTextSize(fade_distance_name).x+im.GetTextLineHeight()+im.GetStyle().FramePadding.x*4)
+  if im.BeginCombo("Fade name tags based on distance", fade_distance_name) then
+    for _, v in ipairs(fade_distances) do
+      if im.Selectable1(v[1], fade_distance_name == v[1]) then
+        distance = v[2]
+        kissconfig.set_setting("players.nametags.fade_start_distance", distance)
+        fade_distance_name = v[1]
+      end
+    end
+    if im.Selectable1("Custom", fade_distance_name == "Custom") then
+      fade_distance_name = "Custom"
+    end
+    im.EndCombo()
+  end
+  if fade_distance_name == "Custom" then
+    im.SetCursorPosX(cursorX)
+    render_sliderI("##players.nametags.fade_start_distance", "players.nametags.fade_start_distance", 25, 500, "%dm")
+  end
+  if not slider_active then
+    im.EndDisabled()
+  end
+  render_checkbox("Hide name tags behind objects", "players.nametags.use_z")
 
   im.NewLine()
   im.Text("Performance")
@@ -167,6 +207,26 @@ local function onKissMPSettingsChanged(config)
 
   config_items["players.show_nametags"] = im.BoolPtr(config["players.show_nametags"])
   config_items["players.show_drivers"] = im.BoolPtr(config["players.show_drivers"])
+
+  config_items["players.nametags.fade"] = im.BoolPtr(config["players.nametags.fade"])
+  config_items["players.nametags.fade_start_distance"] = im.IntPtr(config["players.nametags.fade_start_distance"])
+
+  -- this will stop the entire widget changing away from custom whenever a distance matches a preset
+  -- but ONLY between game sessions, restarting the game will make it use an actual preset if applicable
+  if fade_distance_name ~= "Custom" then
+    local distance = config["players.nametags.fade_start_distance"]
+    for _, v in ipairs(fade_distances) do
+      if distance == v[2] then
+        fade_distance_name = v[1]
+        goto break_loop
+      end
+    end
+    fade_distance_name = "Custom"
+    ::break_loop::
+  end
+
+  config_items["players.nametags.colorful"] = im.BoolPtr(config["players.nametags.colorful"])
+  config_items["players.nametags.use_z"] = im.BoolPtr(config["players.nametags.use_z"])
 
   config_items["perf.enable_view_distance"] = im.BoolPtr(config["perf.enable_view_distance"])
   config_items["perf.view_distance"] = im.IntPtr(config["perf.view_distance"])
