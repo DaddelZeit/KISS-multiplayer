@@ -22,6 +22,9 @@ local filtered_servers = {}
 local filtered_favorite_servers = {}
 local next_bridge_status_update = 0
 
+local public_scripting = false
+local public_mods = false
+
 M.server_list = {}
 
 -- Server list update and search
@@ -68,6 +71,16 @@ local function filter_server_list(list, term, filter_notfull, filter_notempty, f
     end
     if filter_online and not discard then
       discard = discard or not server_found_in_list
+    end
+
+    -- scripts/mods are not set by filter settings
+    dump("scripts", server_from_list.require_scripts, public_scripting)
+    dump("mods", server_from_list.require_mods, public_mods)
+    if server_from_list.require_scripts and not public_scripting then
+      discard = true
+    end
+    if server_from_list.require_mods and not public_mods then
+      discard = true
     end
 
     if not discard then
@@ -219,8 +232,16 @@ local function draw(dt)
   end
 end
 
+local function onKissMPSettingsChanged(config)
+  public_scripting = config["security.public_scripting"]
+  public_mods = config["security.public_mods"]
+
+  dump("onKissMPSettingsChanged", "server_list")
+end
+
 M.draw = draw
 M.refresh = refresh_server_list
 M.update_filtered = update_filtered_servers
+M.onKissMPSettingsChanged = onKissMPSettingsChanged
 
 return M

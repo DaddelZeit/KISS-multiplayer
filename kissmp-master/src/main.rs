@@ -14,6 +14,8 @@ pub struct ServerInfo {
     map: String,
     port: u16,
     version: (u32, u32),
+    require_scripts: bool,
+    require_mods: bool,
     #[serde(skip)]
     update_time: Option<std::time::Instant>,
 }
@@ -139,7 +141,9 @@ fn outdated_ver() -> String {
             map: "Update to a newer version of KissMP".to_string(),
             port: 0,
             version: VERSION,
-            update_time: None
+            update_time: None,
+            require_scripts: false,
+            require_mods: false,
         });
     }
     serde_json::to_string(&server_list).unwrap()
