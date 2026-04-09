@@ -77,6 +77,8 @@ local function draw(dt)
       im.OpenPopup1("SecurityConfirmationPopup")
       mouse_cursor_pos = im.GetMousePos()
       confirm_popup_active = true
+    else
+      kissconfig.set_setting("security.public_scripting", false)
     end
   end
   if im.Checkbox("Allow mods from public servers", config_items["security.public_mods"]) then
@@ -84,6 +86,8 @@ local function draw(dt)
       im.OpenPopup1("SecurityConfirmationPopup")
       mouse_cursor_pos = im.GetMousePos()
       confirm_popup_active = true
+    else
+      kissconfig.set_setting("security.public_mods", false)
     end
   end
   im.PopStyleColor()
