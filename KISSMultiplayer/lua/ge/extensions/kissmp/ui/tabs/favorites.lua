@@ -87,7 +87,7 @@ local function draw_add_favorite_window()
   local display_size = imgui.GetIO().DisplaySize
   imgui.SetNextWindowPos(imgui.ImVec2(display_size.x / 2, display_size.y / 2), imgui.Cond_Always, imgui.ImVec2(0.5, 0.5))
 
-  imgui.SetNextWindowBgAlpha(kissui.window_opacity[0])
+  imgui.SetNextWindowBgAlpha(kissui.window_opacity)
   if imgui.Begin("Add Favorite", kissui.gui.getWindowVisibleBoolPtr("Add Favorite"), bit.bor(imgui.WindowFlags_NoScrollbar ,imgui.WindowFlags_NoResize, imgui.WindowFlags_AlwaysAutoResize)) then
     imgui.Text("Name:")
     imgui.SameLine()
