@@ -124,6 +124,7 @@ local function onKissMPSettingsChanged(config)
       v.onKissMPSettingsChanged(config)
     end
   end
+  names.onKissMPSettingsChanged(config)
 end
 
 M.onKissMPSettingsChanged = onKissMPSettingsChanged

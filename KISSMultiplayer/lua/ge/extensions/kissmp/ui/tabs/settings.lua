@@ -49,7 +49,20 @@ local function draw(dt)
   im.Text("Player Visbility")
   im.Separator()
   render_checkbox("Show Players In Vehicles", "players.show_drivers")
+  im.NewLine()
   render_checkbox("Show Name Tags", "players.show_nametags")
+  render_checkbox("Use Player Colors in Name Tags", "players.nametags.colorful")
+  render_checkbox(nil, "players.nametags.fade")
+  local slider_active = config_items["players.nametags.fade"][0]
+  if not slider_active then
+    im.BeginDisabled()
+  end
+  im.SameLine()
+  render_sliderI("Fade name tags based on distance", "players.nametags.fade_start_distance", 50, 500)
+  if not slider_active then
+    im.EndDisabled()
+  end
+  render_checkbox("Hide name tags behind objects", "players.nametags.use_z")
 
   im.NewLine()
   im.Text("Performance")
@@ -139,6 +152,11 @@ local function onKissMPSettingsChanged(config)
 
   config_items["players.show_nametags"] = im.BoolPtr(config["players.show_nametags"])
   config_items["players.show_drivers"] = im.BoolPtr(config["players.show_drivers"])
+
+  config_items["players.nametags.fade"] = im.BoolPtr(config["players.nametags.fade"])
+  config_items["players.nametags.fade_start_distance"] = im.IntPtr(config["players.nametags.fade_start_distance"])
+  config_items["players.nametags.colorful"] = im.BoolPtr(config["players.nametags.colorful"])
+  config_items["players.nametags.use_z"] = im.BoolPtr(config["players.nametags.use_z"])
 
   config_items["perf.enable_view_distance"] = im.BoolPtr(config["perf.enable_view_distance"])
   config_items["perf.view_distance"] = im.IntPtr(config["perf.view_distance"])
