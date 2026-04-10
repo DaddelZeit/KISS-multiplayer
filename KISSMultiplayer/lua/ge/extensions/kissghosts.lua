@@ -1,8 +1,5 @@
 local M = {}
 
-M.veh_to_ghost_map = {}
-M.id_is_ghost = {}
-
 M.global_state = {}
 M.ghost_state = {}
 M.pause_overrides = {}
@@ -104,20 +101,13 @@ local function attempt_unpause(id)
   end
 end
 
-local function onVehicleSpawned(vehId)
-  if not network.connection.connected then return end
-end
-
 local function onVehicleDestroyed(vehId)
+  M.global_state[vehId] = nil
+  M.ghost_state[vehId] = nil
   M.pause_overrides[vehId] = nil
 end
 
-local function onExtensionLoaded()
-end
-
 M.onUpdate = onUpdate
-M.onExtensionLoaded = onExtensionLoaded
-M.onVehicleSpawned = onVehicleSpawned
 M.onVehicleDestroyed = onVehicleDestroyed
 
 M.set_vehicle_ghost = set_vehicle_ghost
