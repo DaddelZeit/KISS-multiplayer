@@ -14,6 +14,7 @@ M.loading_map = false
 M.id_map = {}
 M.server_ids = {}
 M.ownership = {}
+M.id_to_owner_map = {}
 M.vehicle_updates_buffer = {}
 M.packet_gen_buffer = {}
 M.is_network_session = false
@@ -224,6 +225,7 @@ local function spawn_vehicle(data)
     M.vehicle_buffer[data.server_id] = data
     return
   end
+  M.id_to_owner_map[data.in_game_id] = data.owner
   if data.owner == network.get_client_id() then
     log("I", "kissmp.vehiclemanager.spawn_vehicle", "Vehicle belongs to local client, setting ownership")
     M.id_map[data.server_id] = data.in_game_id
@@ -634,6 +636,7 @@ local function onMissionLoaded(mission)
   if not network.connection.connected then return end
   M.id_map = {}
   M.ownership = {}
+  M.id_to_owner_map = {}
   M.loading_map = false
   first_vehicle = true
 end

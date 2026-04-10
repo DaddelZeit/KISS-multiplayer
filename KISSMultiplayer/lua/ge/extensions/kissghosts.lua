@@ -52,8 +52,9 @@ local function check_overlaps(vid_a)
   bb_half_axis1_a:set(be:getObjectOOBBHalfAxisXYZ(vid_a, 1))
   bb_half_axis2_a:set(be:getObjectOOBBHalfAxisXYZ(vid_a, 2))
 
+  local id_to_owner_map = vehiclemanager.id_to_owner_map
   for vid_b in vehiclesIterator() do
-    if vid_a ~= vid_b and not vehiclemanager.ownership[vid_b] then
+    if vid_a ~= vid_b and id_to_owner_map[vid_a] ~= id_to_owner_map[vid_b] then
       bb_center_b:set(be:getObjectOOBBCenterXYZ(vid_b))
       bb_half_axis0_b:set(be:getObjectOOBBHalfAxisXYZ(vid_b, 0))
       bb_half_axis1_b:set(be:getObjectOOBBHalfAxisXYZ(vid_b, 1))
