@@ -1,14 +1,15 @@
 local M = {}
 
-local ghostSpawnsQueued = {}
-
 M.veh_to_ghost_map = {}
 M.id_is_ghost = {}
+
+M.global_state = {}
 M.ghost_state = {}
 M.pause_overrides = {}
 
 local actual_ghost_states = {}
-local function set_vehicle_ghost(veh_id, ghost_state, mesh_fade)
+local function set_vehicle_ghost(veh_id, ghost_state, mesh_fade, is_global)
+  ghost_state = ghost_state or 0
   if M.pause_overrides[veh_id] then
     -- we still want M.ghost_state to keep its original value
     ghost_state = 2
@@ -16,11 +17,14 @@ local function set_vehicle_ghost(veh_id, ghost_state, mesh_fade)
     M.ghost_state[veh_id] = ghost_state
   end
 
+  if is_global then
+    M.global_state[veh_id] = ghost_state
+  end
+
   if actual_ghost_states[veh_id] == ghost_state then return end
   actual_ghost_states[veh_id] = ghost_state
 
   local veh = getObjectByID(veh_id)
-
   if ghost_state == 0 then -- no ghost
     veh:setActive(1)
     veh:queueLuaCommand("kiss_vehicle.set_collision(true)")
@@ -51,13 +55,13 @@ local function onUpdate()
   end
 end
 
-local function set_pause_override(id, bool)
+local function set_pause_override(id, bool, is_global)
   if not bool then
     M.pause_overrides[id] = nil
   else
     M.pause_overrides[id] = true
   end
-  set_vehicle_ghost(id, M.ghost_state[id], bool)
+  set_vehicle_ghost(id, M.ghost_state[id], bool, is_global)
 end
 
 local velocity = vec3()
@@ -65,10 +69,11 @@ local function set_pause_override_for_owned(bool)
   for id in pairs(vehiclemanager.ownership) do
     local vehicle = getObjectByID(id)
     velocity:set(vehicle:getVelocityXYZ())
-    if velocity:length() < 1 then
-      set_pause_override(id, bool)
+    if velocity:length() < 1 or not bool then
+      set_pause_override(id, bool, true)
     end
   end
+  vehiclemanager.send_vehicle_meta_updates()
 end
 
 local pause_counter = 0
@@ -82,6 +87,7 @@ local function attempt_pause(id)
   pause_counter = pause_counter + 1
   if pause_counter > 0 then
     set_pause_override_for_owned(true)
+    SFXSystem.setGlobalParameter("g_GamePause", 1)
   end
 end
 
@@ -94,12 +100,12 @@ local function attempt_unpause(id)
 
   if pause_counter == 0 then
     set_pause_override_for_owned(false)
+    SFXSystem.setGlobalParameter("g_GamePause", 0)
   end
 end
 
 local function onVehicleSpawned(vehId)
   if not network.connection.connected then return end
-  ghostSpawnsQueued[#ghostSpawnsQueued+1] = vehId
 end
 
 local function onVehicleDestroyed(vehId)
