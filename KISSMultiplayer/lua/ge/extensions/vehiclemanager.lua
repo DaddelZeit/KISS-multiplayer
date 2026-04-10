@@ -570,15 +570,8 @@ local function onVehicleSpawned(id)
   local vehicle = getObjectByID(id)
   vehicle:queueLuaCommand("extensions.addModulePath('lua/vehicle/extensions/kiss_mp')")
   vehicle:queueLuaCommand("extensions.loadModulesInDirectory('lua/vehicle/extensions/kiss_mp')")
-  if vehicle.kissMpGhost then return end
+  vehicle:queueLuaCommand("rawset(_G, 'ghostOnReset', true)") -- this is important for ghosting
 
-  tempVec1:set(vehicle:getPositionXYZ())
-  if first_vehicle then
-    tempVec2:set(tempVec1.x + math.random(-5, 5), tempVec1.y + math.random(-5, 5), tempVec1.z)
-    vehicle:setPosition(tempVec2)
-    vehicle:queueLuaCommand("recovery.saveHome()")
-    first_vehicle = false
-  end
   send_vehicle_config(id)
   -- Attempt to workaround a bug from latest beamng update. Also prevents unicycle cloning(Somewhat)
   if vehicle:getJBeamFilename() == "unicycle" then
