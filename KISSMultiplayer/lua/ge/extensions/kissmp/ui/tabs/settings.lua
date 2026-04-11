@@ -19,10 +19,10 @@ local fade_distances = {
 
 local view_distance_name = ""
 local view_distances = {
-  {"Near", 100},
-  {"Balanced", 200},
-  {"Far", 250},
-  {"Very Far", 400}
+  {"Near", 150},
+  {"Balanced", 300},
+  {"Far", 450},
+  {"Very Far", 600}
 }
 
 local function render_checkbox(ui_name, setting_id)
