@@ -298,8 +298,14 @@ local function onExtensionLoaded()
         for _, vn in pairs(tableFromHeaderTable(controller_data.couplerNodes)) do
           local cid1 = beamstate.nodeNameMap[vn.cid1]
           local cid2 = beamstate.nodeNameMap[vn.cid2]
-          kiss_couplers.ignore_coupler_node(cid1)
-          kiss_couplers.ignore_coupler_node(cid2)
+
+          if cid1 then
+            kiss_couplers.ignore_coupler_node(cid1)
+          end
+
+          if cid2 then
+            kiss_couplers.ignore_coupler_node(cid2)
+          end
         end
       end
     end
