@@ -23,13 +23,13 @@ pub async fn spawn_http_proxy(discord_tx: std::sync::mpsc::Sender<crate::Discord
             Ok(Ok(req)) => req,
             _ => continue,
         };
-        let addr = request.remote_addr();
+        let addr = request.remote_addr().unwrap();
         if addr.ip() != Ipv4Addr::new(127, 0, 0, 1) {
             continue;
         }
         let mut url = request.url().to_string();
-        //println!("{:?}", url);
         url.remove(0);
+        let url = url.replace("http:/", "http://").replace("https:/", "https://");
         if url == "check" {
             let response = tiny_http::Response::from_string("ok");
             request.respond(response).unwrap();
@@ -83,6 +83,13 @@ pub async fn spawn_http_proxy(discord_tx: std::sync::mpsc::Sender<crate::Discord
             let _ = setup_result_rx.await;
             let response = tiny_http::Response::from_string("ok");
             request.respond(response).unwrap();
+            continue;
+        }
+        // Prevent unrestricted internet/local network access (SSRF)
+        if !url.starts_with(&format!("http://{}", shared::MASTER_SERVER)) 
+            && !url.starts_with(&format!("https://{}", shared::MASTER_SERVER)) {
+            let response = tiny_http::Response::from_string("[]");
+            let _ = request.respond(response);
             continue;
         }
         // Timeout so a dead master server domain doesn't hang the game indefinitely
