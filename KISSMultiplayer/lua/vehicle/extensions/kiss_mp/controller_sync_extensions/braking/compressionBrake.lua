@@ -19,7 +19,6 @@ function SyncController:set_controller(value)
     self.electrics_name_setting = jbeam_controller_data.electricsNameSetting or (engine_name .. "_compressionBrake_setting")
   end
 
-  dump(self.electrics_name_setting)
   return true
 end
 

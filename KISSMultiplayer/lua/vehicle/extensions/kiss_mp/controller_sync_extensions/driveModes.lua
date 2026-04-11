@@ -15,12 +15,10 @@ end
 
 function SyncController:get()
   local data = self.contr and self.contr.serialize()
-  if data then
-    return {
-      data.activeDriveModeKey,
-      data.activeDriveModeIndex
-    }
-  end
+  return {
+    data.activeDriveModeKey or "",
+    data.activeDriveModeIndex or 0
+  }
 end
 
 function SyncController:set(data)

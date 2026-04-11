@@ -15,12 +15,10 @@ end
 
 function SyncController:get()
   local data = self.contr and self.contr.serialize()
-  if data then
-    return {
-      data.mode4WD,
-      data.modeRange
-    }
-  end
+  return {
+    data.mode4WD or 0,
+    data.modeRange or 0
+  }
 end
 
 function SyncController:set(data)

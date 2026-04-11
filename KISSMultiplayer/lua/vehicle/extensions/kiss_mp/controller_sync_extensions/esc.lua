@@ -15,11 +15,9 @@ end
 
 function SyncController:get()
   local data = self.contr and self.contr.serialize()
-  if data then
-    return {
-      data.escConfigKey,
-    }
-  end
+  return {
+    data.escConfigKey or 0,
+  }
 end
 
 function SyncController:set(data)
