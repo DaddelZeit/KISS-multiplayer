@@ -120,10 +120,12 @@ impl Server {
             server_identifier: config.server_identifier,
             upnp_enabled: config.upnp_enabled,
             public_address: None,
-            mods: config.mods,
+            mods: config.mods.clone(),
             tick: 0,
             require_scripts: config.require_scripts,
-            require_mods: config.require_mods,
+            require_mods: crate::list_mods(config.mods)
+                .map(|(m, _)| !m.is_empty())
+                .unwrap_or(false),
         }
     }
     pub async fn run(
