@@ -149,7 +149,7 @@ local function draw(dt)
 
   if view_distance_name == "Custom" then
     im.SetCursorPosX(cursorX)
-    render_sliderI("##perf.view_distance", "perf.view_distance", 50, 500, "%dm")
+    render_sliderI("##perf.view_distance", "perf.view_distance", 50, 1000, "%dm")
   end
   im.SetCursorPosX(cursorX)
   im.PushTextWrapPos(0)
