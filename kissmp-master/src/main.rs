@@ -14,7 +14,9 @@ pub struct ServerInfo {
     map: String,
     port: u16,
     version: (u32, u32),
+    #[serde(default)]
     require_scripts: bool,
+    #[serde(default)]
     require_mods: bool,
     #[serde(skip)]
     update_time: Option<std::time::Instant>,
