@@ -50,7 +50,7 @@ local function draw_player_list()
   imgui.Text("Player List:")
   imgui.BeginChild1("PlayerList", imgui.ImVec2(0, 0), true)
   if kissmp_network.connection.connected then
-    for _, player in spairs(kissmp_network.players, function(t,a,b) return t[b].name:lower() > t[a].name:lower() end) do
+    for _, player in spairs(kissmp_players.players, function(t,a,b) return t[b].name:lower() > t[a].name:lower() end) do
       imgui.Text(player.name.."("..player.ping.." ms)")
     end
   end
@@ -154,10 +154,10 @@ local function add_message(message, color, sent_by)
   local user_color
   local user_name
   if sent_by ~= nil then
-    if kissmp_network.players[sent_by] then
+    if kissmp_players.players[sent_by] then
       local r,g,b,a = kissmp_players.get_player_color(sent_by)
       user_color = {r,g,b,a}
-      user_name = kissmp_network.players[sent_by].name
+      user_name = kissmp_players.players[sent_by].name
     end
   end
   local has_color = color ~= nil and type(color) == 'table'

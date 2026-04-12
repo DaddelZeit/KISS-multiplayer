@@ -20,7 +20,6 @@ local ping_send_time = 0
 local public_scripting = false
 local public_mods = false
 
-M.players = {}
 M.socket = socket
 M.base_secret = "None"
 M.connection = {
@@ -112,28 +111,16 @@ local function disconnect(data)
 
   cancel_download()
 
-  -- -- Delete the 3D player models from world memory
-  -- for _, v in pairs(kissmp_players.players) do
-  --   if v then v:delete() end
-  -- end
-  -- for _, v in pairs(kissmp_players.players_in_cars) do
-  --   if v then v:delete() end
-  -- end
-
-  M.players = {}
   kissmp_players.players = {}
+  kissmp_players.player_bodies = {}
   kissmp_players.player_transforms = {}
-  kissmp_players.players_in_cars = {}
+  kissmp_players.player_heads_in_cars = {}
   kissmp_players.player_heads_attachments = {}
   kissmp_richpresence.update()
   
   if getMissionFilename() ~= "" then
     returnToMainMenu()
   end
-end
-
-local function handle_player_info(player_info)
-  M.players[player_info.id] = player_info
 end
 
 local function check_lua(l)
@@ -183,21 +170,6 @@ local function handle_pong(data)
   M.connection.ping = ping * 1000
 end
 
-local function handle_player_disconnected(data)
-  local id = data
-  M.players[id] = nil
-  if kissmp_players.players_in_cars[id] then
-    kissmp_players.delete_player_head(id)
-  end
-
-  -- Delete the 3D player models from world memory
-  if kissmp_players.players[id] then
-    kissmp_players.players[id]:delete()
-    kissmp_players.players[id] = nil
-  end
-  kissmp_players.player_transforms[id] = nil
-end
-
 local function handle_chat(data)
   kissmp_ui.chat.add_message(data[1], nil, data[2])
 end
@@ -209,10 +181,10 @@ local function onKissMPLoaded()
   message_handlers.ResetVehicle = kissmp_vehiclemanager.reset_vehicle
   message_handlers.Chat = handle_chat
   message_handlers.SendLua = handle_lua
-  message_handlers.PlayerInfoUpdate = handle_player_info
+  message_handlers.PlayerInfoUpdate = kissmp_players.player_info_update
   message_handlers.VehicleMetaUpdate = kissmp_vehiclemanager.update_vehicle_meta
   message_handlers.Pong = handle_pong
-  message_handlers.PlayerDisconnected = handle_player_disconnected
+  message_handlers.PlayerDisconnected = kissmp_players.player_disconnect
   message_handlers.VehicleLuaCommand = handle_vehicle_lua
   message_handlers.CouplerAttached = kissmp_vehiclemanager.attach_coupler
   message_handlers.CouplerDetached = kissmp_vehiclemanager.detach_coupler
@@ -309,7 +281,7 @@ local function connect(addr, player_name, is_public)
     M.connection.tcp = nil
   end
 
-  M.players = {}
+  kissmp_players.players = {}
   M.download_start_time = 0
   M.download_queue = {}
   M.download_total_bytes = 0

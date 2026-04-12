@@ -15,7 +15,7 @@ local use_z_names = true
 
 local function draw()
   camera_pos:set(core_camera.getPositionXYZ())
-  for id, player in pairs(kissmp_network.players) do
+  for id, player in pairs(kissmp_players.players) do
     if id ~= kissmp_network.connection.client_id and player.current_vehicle then
       local vehicle_id = kissmp_vehiclemanager.id_map[player.current_vehicle] or -1
       local vehicle = getObjectByID(vehicle_id)

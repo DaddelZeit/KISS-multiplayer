@@ -4,7 +4,8 @@ local show_drivers = false
 
 M.lerp_factor = 5
 M.players = {}
-M.players_in_cars = {}
+M.player_bodies = {}
+M.player_heads_in_cars = {}
 M.player_heads_attachments = {}
 M.player_transforms = {}
 
@@ -86,7 +87,7 @@ local function spawn_player(data)
   kissmp_vehiclemanager.id_map[data.server_id] = player_mesh_id
   kissmp_vehiclemanager.server_ids[player_mesh_id] = data.server_id
 
-  M.players[data.server_id] = player
+  M.player_bodies[data.server_id] = player
   M.player_transforms[data.server_id] = {
     position = vec3(data.position),
     target_position = vec3(data.position),
@@ -96,12 +97,17 @@ local function spawn_player(data)
   }
 end
 
+local function delete_player_body(id)
+  M.player_bodies[id]:delete()
+  M.player_bodies[id] = nil
+end
+
 local original_position = vec3()
 local temp_vec = vec3()
 local final_pos = vec3()
 local function update_unicycle_replacements(dt)
   for id, data in pairs(M.player_transforms) do
-    local player = M.players[id]
+    local player = M.player_bodies[id]
     if player and data then
       data.time_past = data.time_past + dt
       original_position:set(data.position)
@@ -137,13 +143,13 @@ local function spawn_player_head(id, veh_id)
   player:setField('instanceColor', 0, string.format("%g %g %g %g", r, g, b, a))
   player:registerObject("player_head"..id)
 
-  M.players_in_cars[id] = player
+  M.player_heads_in_cars[id] = player
   M.player_heads_attachments[id] = veh_id
 end
 
 local function delete_player_head(id)
-  M.players_in_cars[id]:delete()
-  M.players_in_cars[id] = nil
+  M.player_heads_in_cars[id]:delete()
+  M.player_heads_in_cars[id] = nil
   M.player_heads_attachments[id] = nil
 end
 
@@ -162,17 +168,17 @@ local function update_player_head(dt, player_id, vehicle)
 
     local hide = not show_drivers or kissmp_transform.inactive[veh_id]
     hide = hide or vehicle == getPlayerVehicle(0) and camera_pos:squaredDistance(driver_cam_pos) < distance_threshold
-    if not hide and not M.players_in_cars[player_id] then
+    if not hide and not M.player_heads_in_cars[player_id] then
       spawn_player_head(player_id, veh_id)
     end
-    if hide and M.players_in_cars[player_id] then
+    if hide and M.player_heads_in_cars[player_id] then
       delete_player_head(player_id)
     end
 
     vehicle_vel:set(vehicle:getVelocityXYZ())
     vehicle_vel:setScaled(dt)
     driver_cam_pos:setAdd(vehicle_vel)
-    local player = M.players_in_cars[player_id]
+    local player = M.player_heads_in_cars[player_id]
     if player then
       local x, y, z = driver_cam_pos:xyz()
       player:setPosRot(
@@ -189,16 +195,34 @@ local function update_players(_, dt_sim)
   update_unicycle_replacements(dt_sim)
 
   camera_pos:set(core_camera.getPositionXYZ())
-  for player_id, player_data in pairs(kissmp_network.players) do
+  for player_id, player_data in pairs(M.players) do
     local vehicleId = kissmp_vehiclemanager.id_map[player_data.current_vehicle or -1] or -1
     local vehicle = getObjectByID(vehicleId)
 
     if vehicle and not blacklist[vehicle:getJBeamFilename()] then
       update_player_head(dt_sim, player_id, vehicle)
-    elseif M.players_in_cars[player_id] then
+    elseif M.player_heads_in_cars[player_id] then
       delete_player_head(player_id)
     end
   end
+end
+
+local function player_disconnect(data)
+  local id = data
+  M.players[id] = nil
+
+  if M.player_heads_in_cars[id] then
+    delete_player_head(id)
+  end
+
+  if M.player_bodies[id] then
+    delete_player_body(id)
+  end
+  M.player_transforms[id] = nil
+end
+
+local function player_info_update(player_info)
+  M.players[player_info.id] = player_info
 end
 
 local function onKissMPSettingsChanged(config)
@@ -206,8 +230,11 @@ local function onKissMPSettingsChanged(config)
 end
 
 M.spawn_player = spawn_player
-M.delete_player_head = delete_player_head
 M.get_player_color = get_player_color
+M.delete_player_body = delete_player_body
+M.delete_player_head = delete_player_head
+M.player_disconnect = player_disconnect
+M.player_info_update = player_info_update
 
 M.onUpdate = update_players
 M.onKissMPSettingsChanged = onKissMPSettingsChanged

@@ -319,7 +319,7 @@ end
 local function update_vehicle(data)
   kissmp_transform.raw_transforms[data.vehicle_id] = data.transform
   -- If vehicle is a unicycle(Walking mode character), sync it differently
-  local character = kissmp_players.players[data.vehicle_id]
+  local character = kissmp_players.player_bodies[data.vehicle_id]
   if character then
     local character_transforms = kissmp_players.player_transforms[data.vehicle_id]
     if not character_transforms then
@@ -360,9 +360,8 @@ end
 
 local function remove_vehicle(data)
   local id = data
-  if kissmp_players.players[id] then
-    kissmp_players.players[id]:delete()
-    kissmp_players.players[id] = nil
+  if kissmp_players.player_bodies[id] then
+    kissmp_players.delete_player_body(id)
     kissmp_players.player_transforms[id] = nil
     return
   end
