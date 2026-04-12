@@ -24,7 +24,7 @@ local function update(dt)
   -- Get rotation/angular velocity from vehicle lua
   for vid, v in vehiclesIterator() do
     if not M.inactive[vid] then
-      v:queueLuaCommand("kiss_vehicle.update_transform_info()")
+      v:queueLuaCommand("kissmp_vehicle.update_transform_info()")
     end
   end
 
@@ -47,7 +47,7 @@ local function update(dt)
           M.inactive[id] = false
         end
         vehicle:queueLuaCommand(string.format(
-          "kiss_transforms.update(%f)",
+          "kissmp_transforms.update(%f)",
           dt))
       end
     end
@@ -68,7 +68,7 @@ local function update_vehicle_transform(data)
   transform.time_past = clamp(vehiclemanager.get_current_time() - transform.sent_at, 0, 0.1) * 0.9 + 0.001
   if vehicle and (not M.inactive[id]) then
     vehicle:queueLuaCommand(string.format(
-      "kiss_transforms.set_target_transform(%q)",
+      "kissmp_transforms.set_target_transform(%q)",
       string_buffer.encode(transform)))
   end
 end

@@ -137,7 +137,7 @@ local function update(dt)
   end
 
   if angular_force:squaredLength() > 0.1 * 0.1 then
-    kiss_vehicle.apply_linear_velocity_ang_torque(
+    kissmp_vehicle.apply_linear_velocity_ang_torque(
       linear_force.x,
       linear_force.y,
       linear_force.z,
@@ -146,7 +146,7 @@ local function update(dt)
       angular_force.x
     )
   elseif linear_force:squaredLength() > (dt * 15) * (dt * 15) then
-    kiss_vehicle.apply_linear_velocity(
+    kissmp_vehicle.apply_linear_velocity(
       linear_force.x,
       linear_force.y,
       linear_force.z
@@ -186,7 +186,7 @@ local function set_target_transform(buffer_data)
   M.received_transform.time_past = transform.time_past
 end
 
-local function onExtensionLoaded()
+local function onKissMPVehLoaded()
   object_position:set(obj:getPositionXYZ())
   object_rotation:set(obj:getRotation())
   M.received_transform.position:set(object_position)
@@ -202,7 +202,8 @@ end
 
 M.set_target_transform = set_target_transform
 M.update = update
-M.onExtensionLoaded = onExtensionLoaded
+
 M.onReset = onReset
+M.onKissMPVehLoaded = onKissMPVehLoaded
 
 return M

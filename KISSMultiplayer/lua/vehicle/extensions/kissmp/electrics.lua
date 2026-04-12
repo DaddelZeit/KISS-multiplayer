@@ -204,7 +204,7 @@ local function apply_diff(buffer_data)
   end
 end
 
-local function onExtensionLoaded()
+local function onKissMPVehLoaded()
   -- Ignore powertrain electrics
   local devices = powertrain.getDevices()
   for _, device in pairs(devices) do
@@ -271,8 +271,8 @@ local function onExtensionLoaded()
         for _, vn in pairs(tableFromHeaderTable(controller_data.couplerNodes)) do
           local cid1 = beamstate.nodeNameMap[vn.cid1]
           local cid2 = beamstate.nodeNameMap[vn.cid2]
-          kiss_couplers.ignore_coupler_node(cid1)
-          kiss_couplers.ignore_coupler_node(cid2)
+          kissmp_couplers.ignore_coupler_node(cid1)
+          kissmp_couplers.ignore_coupler_node(cid2)
         end
       end
     end
@@ -317,9 +317,8 @@ M.send = send
 M.apply_diff = apply_diff
 M.ignore_key = ignore_key
 
-M.kissUpdateOwnership = kissUpdateOwnership
-
-M.onExtensionLoaded = onExtensionLoaded
 M.updateGFX = updateGFX
+M.onKissMPVehLoaded = onKissMPVehLoaded
+M.kissUpdateOwnership = kissUpdateOwnership
 
 return M

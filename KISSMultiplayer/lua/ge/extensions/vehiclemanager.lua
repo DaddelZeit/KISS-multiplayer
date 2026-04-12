@@ -144,7 +144,7 @@ end
 local function send_vehicle_config(vehicle_id)
   local vehicle = getObjectByID(vehicle_id)
   if vehicle then
-    vehicle:queueLuaCommand("kiss_vehicle.send_vehicle_config()")
+    vehicle:queueLuaCommand("kissmp_vehicle.send_vehicle_config()")
   end
 end
 
@@ -286,7 +286,7 @@ local function onUpdate(dt)
       local vehicle = getObjectByID(i)
       if vehicle and (not kisstransform.inactive[i]) then
         send_vehicle_update(vehicle)
-        vehicle:queueLuaCommand("kiss_electrics.send()")
+        vehicle:queueLuaCommand("kissmp_electrics.send()")
       end
     end
   end
@@ -295,7 +295,7 @@ local function onUpdate(dt)
     if not M.ownership[v] then
       local vehicle = getObjectByID(v)
       if vehicle and (not kisstransform.inactive[v]) then
-        vehicle:queueLuaCommand("kiss_vehicle.update_eligible_nodes()")
+        vehicle:queueLuaCommand("kissmp_vehicle.update_eligible_nodes()")
       end
     end
   end
@@ -352,8 +352,8 @@ local function update_vehicle(data)
   kisstransform.update_vehicle_transform(data)
   if not kisstransform.inactive[id] then
     vehicle:queueLuaCommand(string.format(
-      [[kiss_input.apply(%q)
-        kiss_gearbox.apply(%q)]],
+      [[kissmp_input.apply(%q)
+        kissmp_gearbox.apply(%q)]],
       string_buffer.encode(data.electrics),
       string_buffer.encode(data.gearbox)))
   end
@@ -444,7 +444,7 @@ local function electrics_diff_update(data)
     if not vehicle then return end
     local data = data[2].diff
     vehicle:queueLuaCommand(string.format(
-      "kiss_electrics.apply_diff(%q)",
+      "kissmp_electrics.apply_diff(%q)",
       string_buffer.encode(data)))
   end
 end
@@ -503,7 +503,7 @@ local function attach_coupler(data)
     tempVec2:setSub(nodeBPos)
 
     vehicle_b:setPositionNoPhysicsReset(tempVec2)
-    vehicle_b:queueLuaCommand("kiss_couplers.attach_coupler("..data.node_b_id..")")
+    vehicle_b:queueLuaCommand("kissmp_couplers.attach_coupler("..data.node_b_id..")")
     onCouplerAttached(obj_a, obj_b, data.node_a_id, data.node_b_id)
   end
 end
@@ -521,7 +521,7 @@ local function detach_coupler(data)
     tempVec2:set(vehicle_b:getPositionXYZ())
     if tempVec1:squaredDistance(tempVec2) > distanceThreshold then return end
 
-    vehicle:queueLuaCommand("kiss_couplers.detach_coupler("..data.node_a_id..")")
+    vehicle:queueLuaCommand("kissmp_couplers.detach_coupler("..data.node_a_id..")")
     onCouplerDetached(obj_a, obj_b, data.node_a_id, data.node_b_id)
     onCouplerDetach(obj_a, data.node_a_id)
     onCouplerDetach(obj_b, data.node_b_id)
@@ -563,8 +563,7 @@ local function onVehicleSpawned(id)
     vehicle:queueLuaCommand("recovery.saveHome()")
     first_vehicle = false
   end
-  vehicle:queueLuaCommand("extensions.addModulePath('lua/vehicle/extensions/kiss_mp')")
-  vehicle:queueLuaCommand("extensions.loadModulesInDirectory('lua/vehicle/extensions/kiss_mp')")
+  vehicle:queueLuaCommand("extensions.load('kissmp_main')")
   send_vehicle_config(id)
   -- Attempt to workaround a bug from latest beamng update. Also prevents unicycle cloning(Somewhat)
   if vehicle:getJBeamFilename() == "unicycle" then

@@ -13,7 +13,7 @@ local node_pos_thresh_sqr = node_pos_thresh * node_pos_thresh
 
 M.test_quat = quat(0.707, 0, 0, 0.707)
 
-local function onExtensionLoaded()
+local function onKissMPVehLoaded()
   local force = obj:getPhysicsFPS()
 
   local ref = {
@@ -84,7 +84,7 @@ local function update_transform_info()
     parkingbrake = electrics.values.parkingbrake_input or 0,
     steering_input = electrics.values.steering_input or 0,
   }
-  local gearbox = kiss_gearbox.get_gearbox_data()
+  local gearbox = kissmp_gearbox.get_gearbox_data()
   local transform = {
     position  = {obj:getPositionXYZ()},
     rotation  = {obj:getRotation()},
@@ -159,7 +159,8 @@ M.update_transform_info = update_transform_info
 M.apply_linear_velocity_ang_torque = apply_linear_velocity_ang_torque
 M.update_eligible_nodes = update_eligible_nodes
 M.apply_linear_velocity = apply_linear_velocity
-M.onExtensionLoaded = onExtensionLoaded
 M.send_vehicle_config = send_vehicle_config
+
+M.onKissMPVehLoaded = onKissMPVehLoaded
 
 return M

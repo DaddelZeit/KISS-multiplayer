@@ -90,7 +90,7 @@ local function onReset()
   sequential_lock = false
 end
 
-local function onExtensionLoaded()
+local function onKissMPVehLoaded()
   mainController = controller.mainController
   vehicle_is_electric = tableSize(powertrain.getDevicesByType("electricMotor")) > 0
   gearbox = powertrain.getDevice("gearbox")
@@ -122,9 +122,10 @@ end
 
 M.apply = apply
 M.get_gearbox_data = get_gearbox_data
-M.onExtensionLoaded = onExtensionLoaded
+
 M.updateGFX = updateGFX
 M.onReset = onReset
+M.onKissMPVehLoaded = onKissMPVehLoaded
 M.kissUpdateOwnership = kissUpdateOwnership
 
 return M
