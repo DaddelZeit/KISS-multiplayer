@@ -14,7 +14,6 @@ M.downloaded_bytes = 0
 M.download_queue = {}
 
 local socket = require("socket")
-local messagepack = require("lua/common/libs/Lua-MessagePack/MessagePack")
 local ping_send_time = 0
 
 local public_scripting = false

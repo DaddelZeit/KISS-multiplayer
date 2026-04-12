@@ -1,16 +1,16 @@
 local M = {}
 
-local main_window = require("kissmp.ui.main")
-M.chat = require("kissmp.ui.chat")
-M.download_window = require("kissmp.ui.download")
-local names = require("kissmp.ui.names")
+local main_window = require("kissmp/ui/main")
+M.chat = require("kissmp/ui/chat")
+M.download_window = require("kissmp/ui/download")
+local names = require("kissmp/ui/names")
 
 M.tabs = {
-  server_list = require("kissmp.ui.tabs.server_list"),
-  favorites = require("kissmp.ui.tabs.favorites"),
-  settings = require("kissmp.ui.tabs.settings"),
-  direct_connect = require("kissmp.ui.tabs.direct_connect"),
-  create_server = require("kissmp.ui.tabs.create_server"),
+  server_list = require("kissmp/ui/tabs/server_list"),
+  favorites = require("kissmp/ui/tabs/favorites"),
+  settings = require("kissmp/ui/tabs/settings"),
+  direct_connect = require("kissmp/ui/tabs/direct_connect"),
+  create_server = require("kissmp/ui/tabs/create_server"),
 }
 
 M.dependencies = {"ui_imgui"}
