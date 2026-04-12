@@ -4,24 +4,29 @@ local string_buffer = require("string.buffer")
 
 local prev_controller_data = {}
 
-local function isDiff(t1, t2)
+local function is_diff(t1, t2)
+  if t1 == t2 then return false end
+
   if type(t1) ~= "table" or type(t2) ~= "table" then
     return t1 ~= t2
   end
 
+  local t1_key_count = 0
   for k, v in pairs(t1) do
-    if type(v) == "table" then
-      if not isDiff(v, t2[k]) then
-        return true
-      end
-    else
-      if v ~= t2[k] then
-        return true
-      end
+    if t2[k] == nil then return true end
+
+    if is_diff(v, t2[k]) then
+      return true
     end
+    t1_key_count = t1_key_count + 1
   end
 
-  return false
+  local t2_key_count = 0
+  for _ in pairs(t2) do
+    t2_key_count = t2_key_count + 1
+  end
+
+  return t1_key_count ~= t2_key_count
 end
 
 local active_controllers = {}
@@ -32,7 +37,7 @@ local function send()
   for i = 1, #active_controllers do
     local new_data = active_controllers[i]:get()
 
-    if isDiff(prev_controller_data[i], new_data) then
+    if is_diff(prev_controller_data[i], new_data) then
       diffs[i] = new_data
       diff_count = diff_count + 1
       prev_controller_data[i] = new_data
