@@ -112,7 +112,7 @@ local function load_config()
   extensions.hook("onKissMPSettingsChanged", magic_config)
 end
 
-local function init()
+local function onKissMPLoaded()
   load_config()
   if #FS:findFiles("/mods/", "kissmultiplayer.zip", 1000) == 0 then
     M.incorrect_install = true
@@ -125,6 +125,6 @@ M.save_config = save_config
 M.load_config = load_config
 
 M.onUpdate = update
-M.onExtensionLoaded = init
+M.onKissMPLoaded = onKissMPLoaded
 
 return M

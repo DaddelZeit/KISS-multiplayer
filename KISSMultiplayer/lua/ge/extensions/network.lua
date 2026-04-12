@@ -202,7 +202,7 @@ local function handle_chat(data)
   kissui.chat.add_message(data[1], nil, data[2])
 end
 
-local function onExtensionLoaded()
+local function onKissMPLoaded()
   message_handlers.VehicleUpdate = vehiclemanager.update_vehicle
   message_handlers.VehicleSpawn = vehiclemanager.spawn_vehicle
   message_handlers.RemoveVehicle = vehiclemanager.remove_vehicle
@@ -618,7 +618,7 @@ M.disconnect = disconnect
 M.cancel_download = cancel_download
 M.send_data = send_data
 M.onUpdate = onUpdate
-M.onExtensionLoaded = onExtensionLoaded
+M.onKissMPLoaded = onKissMPLoaded
 M.onKissMPSettingsChanged = onKissMPSettingsChanged
 
 return M

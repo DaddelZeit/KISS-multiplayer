@@ -6,8 +6,8 @@ M.bridge_connected = false
 
 local extension_load_list = {
   -- network first
-  "vehiclemanager",
   "network",
+  "vehiclemanager",
   "kissrichpresence",
   "kissvoicechat",
 
@@ -29,6 +29,8 @@ local function onUpdate()
   for i=1, #extension_load_list do
     extensions.load(extension_load_list[i])
   end
+
+  extensions.hook("onKissMPLoaded")
 end
 
 local function onExtensionUnloaded()

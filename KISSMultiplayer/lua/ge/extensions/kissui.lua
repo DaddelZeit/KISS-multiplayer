@@ -128,7 +128,7 @@ local function onKissMPSettingsChanged(config)
 end
 
 M.onKissMPSettingsChanged = onKissMPSettingsChanged
-M.onExtensionLoaded = open_ui
+M.onKissMPLoaded = open_ui
 M.onUpdate = onUpdate
 
 -- Backwards compatability
