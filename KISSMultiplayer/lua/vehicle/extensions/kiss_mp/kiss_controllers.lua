@@ -11,22 +11,19 @@ local function is_diff(t1, t2)
     return t1 ~= t2
   end
 
-  local t1_key_count = 0
   for k, v in pairs(t1) do
     if t2[k] == nil then return true end
 
     if is_diff(v, t2[k]) then
       return true
     end
-    t1_key_count = t1_key_count + 1
   end
 
-  local t2_key_count = 0
-  for _ in pairs(t2) do
-    t2_key_count = t2_key_count + 1
+  for k in pairs(t2) do
+    if t1[k] == nil then return true end
   end
 
-  return t1_key_count ~= t2_key_count
+  return false
 end
 
 local active_controllers = {}
