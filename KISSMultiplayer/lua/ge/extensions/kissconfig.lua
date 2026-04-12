@@ -1,5 +1,10 @@
 local M = {}
-local imgui = ui_imgui
+
+local queue_settings_save_timer = 0
+local target_config_version = 2
+local defaults = {}
+local config = {}
+local magic_config = {}
 
 local function generate_base_secret()
   math.randomseed(os.time() + os.clock())
@@ -11,58 +16,98 @@ local function generate_base_secret()
   return result
 end
 
-local function save_config()
-  local secret = network.base_secret or "None"
-  if secret == "None" then
-    secret = generate_base_secret()
+local function update_settings(oldconfig)
+  -- update from original to version 2 (better structure)
+  if not oldconfig.header then
+    local config_data = {}
+    config_data["security.base_secret_v2"] = oldconfig.base_secret_v2
+    config_data["perf.enable_view_distance"] = oldconfig.enable_view_distance
+    config_data["perf.view_distance"] = oldconfig.view_distance
+    config_data["players.show_drivers"] = oldconfig.show_drivers
+    config_data["players.show_nametags"] = oldconfig.show_nametags
+    config_data["ui.addr"] = oldconfig.addr
+    config_data["ui.name"] = oldconfig.name
+    config_data["ui.window_opacity"] = oldconfig.window_opacity
+
+    return config_data
   end
+end
+
+local function save_config()
   local result = {
-    name = ffi.string(kissui.player_name),
-    addr = ffi.string(kissui.addr),
-    show_nametags = kissui.show_nametags[0],
-    show_drivers = kissui.show_drivers[0],
-    window_opacity = kissui.window_opacity[0],
-    enable_view_distance = kissui.enable_view_distance[0],
-    view_distance = kissui.view_distance[0],
-    base_secret_v2 = secret
+    header = {
+      version = 2
+    },
+    data = {}
   }
+  for k,v in pairs(config) do
+    if k == "security.base_secret_v2" or k == "ui.name" or defaults[k] ~= nil then
+      result.data[k] = v
+    else
+      log("W", "kissmp.kissconfig.save_config", "Unknown settings key: "..tostring(k)..". Will be skipped in save.")
+    end
+  end
+
   jsonWriteFile("/settings/kissmp_config.json", result, true)
 end
 
-local function load_config()
-  if not FS:fileExists("/settings/kissmp_config.json") then
-    if Steam and Steam.isWorking and Steam.accountLoggedIn then
-      kissui.player_name = imgui.ArrayChar(32, Steam.playerName)
+local function update(dt_real)
+  if queue_settings_save_timer > 0 then
+    queue_settings_save_timer = queue_settings_save_timer - dt_real
+    if queue_settings_save_timer <= 0 then
+      save_config()
     end
-    return
   end
-  local config = jsonReadFile("/settings/kissmp_config.json")
-  if not config then return end
+end
 
-  if config.name ~= nil then
-    kissui.player_name = imgui.ArrayChar(32, config.name)
+local function set_setting(id, val)
+  config[id] = val
+  queue_settings_save_timer = 2
+  extensions.hook("onKissMPSettingsChanged", magic_config)
+end
+
+local function get_setting(id)
+  if config[id] == nil then
+    return defaults[id]
   end
-  if config.addr ~= nil then
-    kissui.addr = imgui.ArrayChar(128, config.addr)
+  return config[id]
+end
+
+local function load_config()
+  local default_config = jsonReadFile("/settings/kissmp_config_default.json")
+  defaults = default_config.data
+
+  local raw_config = jsonReadFile("/settings/kissmp_config.json")
+  if raw_config then
+    if raw_config.header and raw_config.header.version == target_config_version then
+      config = raw_config.data
+    else
+      config = update_settings(raw_config)
+    end
+  else
+    config = deepcopy(defaults)
+    if Steam and Steam.isWorking and Steam.accountLoggedIn then
+      config.name = Steam.playerName
+    else
+      config.name = "Unknown"
+    end
   end
-  if config.show_nametags ~= nil then
-    kissui.show_nametags[0] = config.show_nametags
+
+  if config["security.base_secret_v2"] == nil then
+    config["security.base_secret_v2"] = generate_base_secret()
   end
-  if config.show_drivers ~= nil then
-    kissui.show_drivers[0] = config.show_drivers
-  end
-  if config.window_opacity ~= nil then
-    kissui.window_opacity[0] = config.window_opacity
-  end
-  if config.view_distance ~= nil then
-    kissui.view_distance[0] = config.view_distance
-  end
-  if config.enable_view_distance ~= nil then
-    kissui.enable_view_distance[0] = config.enable_view_distance
-  end
-  if config.base_secret_v2 ~= nil then
-    network.base_secret = config.base_secret_v2
-  end
+
+  local mt = {
+    __index = function(_, key)
+      return get_setting(key)
+    end, -- use get_setting
+    __newindex = function(_, key, val)
+      set_setting(key, val)
+    end, -- use set_setting
+    __metatable = false --hide metatable to prevent any changes to it
+  }
+  setmetatable(magic_config, mt)
+  extensions.hook("onKissMPSettingsChanged", magic_config)
 end
 
 local function init()
@@ -72,8 +117,12 @@ local function init()
   end
 end
 
+M.set_setting = set_setting
+M.get_setting = get_setting
 M.save_config = save_config
 M.load_config = load_config
+
+M.onUpdate = update
 M.onExtensionLoaded = init
 
 return M

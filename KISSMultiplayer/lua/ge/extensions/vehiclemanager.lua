@@ -184,6 +184,7 @@ end
 
 local camera_pos = vec3()
 local transform_pos = vec3()
+local view_distance = nil
 
 local function spawn_vehicle(data)
   local model_info = core_vehicles.getModel(data.name)
@@ -193,7 +194,6 @@ local function spawn_vehicle(data)
   end
 
   local away = true
-  local view_distance = kissui.enable_view_distance[0] and kissui.view_distance[0] * kissui.view_distance[0] or nil
   if view_distance then
     if kisstransform.raw_transforms[data.server_id] then
       local position = kisstransform.raw_transforms[data.server_id].position
@@ -300,7 +300,6 @@ local function onUpdate(dt)
     end
   end
   if not (M.loading_map or M.delay_spawns) then
-    local view_distance = kissui.enable_view_distance[0] and kissui.view_distance[0] * kissui.view_distance[0] or nil
     local to_remove = {}
     for k, vehicle in pairs(M.vehicle_buffer) do
       local t = kisstransform.raw_transforms[k]
@@ -632,7 +631,12 @@ local function onMissionLoaded(mission)
   first_vehicle = true
 end
 
+local function onKissMPSettingsChanged(config)
+  view_distance = config["perf.enable_view_distance"] and config["perf.view_distance"] * config["perf.view_distance"] or nil
+end
+
 M.onUpdate = onUpdate
+M.onKissMPSettingsChanged = onKissMPSettingsChanged
 M.get_current_time = get_current_time
 M.update_vehicle = update_vehicle
 M.send_vehicle_config = send_vehicle_config

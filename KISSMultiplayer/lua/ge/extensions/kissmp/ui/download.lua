@@ -21,7 +21,7 @@ local function draw(gui)
   if not kissui.show_download then return end
 
   if not kissui.gui.isWindowVisible("Downloads") then return end
-  imgui.SetNextWindowBgAlpha(kissui.window_opacity[0])
+  imgui.SetNextWindowBgAlpha(kissui.window_opacity)
   imgui.PushStyleVar2(imgui.StyleVar_WindowMinSize, imgui.ImVec2(300, 300))
   imgui.SetNextWindowViewport(imgui.GetMainViewport().ID)
   if imgui.Begin("Downloading Required Mods") then

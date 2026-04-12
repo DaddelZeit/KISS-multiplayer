@@ -32,15 +32,12 @@ M.gui = {setupEditorGuiTheme = nop}
 local imgui = ui_imgui
 
 local ui_showing = false
+local names_visible = false
+local uiscale = 1
 
--- TODO: Move all this somewhere else. Some of settings aren't even related to UI
 M.addr = imgui.ArrayChar(128)
 M.player_name = imgui.ArrayChar(32, "Unknown")
-M.show_nametags = imgui.BoolPtr(true)
-M.show_drivers = imgui.BoolPtr(true)
-M.window_opacity = imgui.FloatPtr(0.8)
-M.enable_view_distance = imgui.BoolPtr(true)
-M.view_distance = imgui.IntPtr(300)
+M.window_opacity = 0.8
 
 local function show_ui()
   M.gui.showWindow("KissMP")
@@ -84,21 +81,53 @@ local function draw_incorrect_install()
   imgui.End()
 end
 
+local function change_scale(new_uiscale)
+  imgui.uiscale[0] = new_uiscale
+  local io = imgui.GetIO(io)
+  imgui.ImGuiIO_FontGlobalScale(io, imgui.uiscale[0])
+end
+
 local function onUpdate(dt)
   if getMissionFilename() ~= '' and not vehiclemanager.is_network_session then
     return
   end
+
+  local prev_ui_scale = imgui.uiscale[0]
+  change_scale(uiscale)
+  imgui.PushFont3("segoeui_regular") -- update font size
+
   main_window.draw(dt)
   M.chat.draw()
   M.download_window.draw()
+
   if M.incorrect_install then
-     draw_incorrect_install()
+    draw_incorrect_install()
   end
-  if (not M.force_disable_nametags) and M.show_nametags[0] then
+
+  if not M.force_disable_nametags and names_visible then
     names.draw()
   end
+
+  change_scale(prev_ui_scale)
+  imgui.PopFont() -- reset font size
 end
 
+local function onKissMPSettingsChanged(config)
+  ffi.copy(M.addr, config["ui.addr"] or "")
+  ffi.copy(M.player_name, config["ui.name"] or "")
+  M.window_opacity = config["ui.window_opacity"]
+  uiscale = config["ui.scale"] * imgui.GetWindowDpiScale()
+  names_visible = config["players.show_nametags"]
+
+  for _, v in pairs(M.tabs) do
+    if v.onKissMPSettingsChanged then
+      v.onKissMPSettingsChanged(config)
+    end
+  end
+  names.onKissMPSettingsChanged(config)
+end
+
+M.onKissMPSettingsChanged = onKissMPSettingsChanged
 M.onExtensionLoaded = open_ui
 M.onUpdate = onUpdate
 

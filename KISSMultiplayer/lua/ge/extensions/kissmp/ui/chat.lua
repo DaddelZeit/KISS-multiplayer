@@ -69,7 +69,7 @@ local function draw()
   end
   window_title = window_title .. "###chat"
 
-  imgui.SetNextWindowBgAlpha(kissui.window_opacity[0])
+  imgui.SetNextWindowBgAlpha(kissui.window_opacity)
   if imgui.Begin(window_title) then
     local content_width = imgui.GetWindowContentRegionWidth()
     imgui.BeginChild1("ChatWindowUpperContent", imgui.ImVec2(0, -30), true)

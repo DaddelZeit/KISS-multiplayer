@@ -2,6 +2,8 @@ local M = {}
 
 local string_buffer = require("string.buffer")
 
+local view_distance = nil
+
 M.raw_transforms = {}
 M.received_transforms = {}
 M.local_transforms = {}
@@ -29,7 +31,6 @@ local function update(dt)
   -- Don't apply velocity while paused. If we do, velocity gets stored up and released when the game resumes.
   local apply_velocity = not bullettime.getPause()
   camera_pos:set(core_camera.getPositionXYZ())
-  local view_distance = kissui.enable_view_distance[0] and kissui.view_distance[0] * kissui.view_distance[0] or nil
   for id, transform in pairs(M.received_transforms) do
     --apply_transform(dt, id, transform, apply_velocity)
     local vehicle = getObjectByID(id)
@@ -76,8 +77,13 @@ local function push_transform(id, t)
   M.local_transforms[id] = string_buffer.decode(t)
 end
 
+local function onKissMPSettingsChanged(config)
+  view_distance = config["perf.enable_view_distance"] and config["perf.view_distance"] * config["perf.view_distance"] or nil
+end
+
 M.update_vehicle_transform = update_vehicle_transform
 M.push_transform = push_transform
 M.onUpdate = update
+M.onKissMPSettingsChanged = onKissMPSettingsChanged
 
 return M

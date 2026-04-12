@@ -87,6 +87,8 @@ pub struct Server {
     public_address: Option<String>,
     mods: Option<Vec<String>>,
     tick: u64,
+    require_scripts: bool,
+    require_mods: bool,
 }
 
 impl Server {
@@ -117,8 +119,12 @@ impl Server {
             server_identifier: config.server_identifier,
             upnp_enabled: config.upnp_enabled,
             public_address: None,
-            mods: config.mods,
+            mods: config.mods.clone(),
             tick: 0,
+            require_scripts: config.require_scripts,
+            require_mods: crate::list_mods(config.mods)
+                .map(|(m, _)| !m.is_empty())
+                .unwrap_or(false),
         }
     }
     pub async fn run(
@@ -281,7 +287,9 @@ impl Server {
             "description": self.description.clone(),
             "map": self.map.clone(),
             "port": self.port,
-            "version": shared::VERSION
+            "version": shared::VERSION,
+            "require_scripts": self.require_scripts,
+            "require_mods": self.require_mods,
         })
         .to_string();
 
@@ -408,6 +416,8 @@ impl Server {
                 max_vehicles_per_client: self.max_vehicles_per_client,
                 mods: list_mods(self.mods.clone()).unwrap().0,
                 server_identifier: self.server_identifier.clone(),
+                require_scripts: self.require_scripts,
+                require_mods: self.require_mods,
             }))
             .unwrap();
         // Sender

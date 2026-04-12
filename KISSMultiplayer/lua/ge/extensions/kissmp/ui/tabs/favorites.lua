@@ -87,7 +87,7 @@ local function draw_add_favorite_window()
   local display_size = imgui.GetIO().DisplaySize
   imgui.SetNextWindowPos(imgui.ImVec2(display_size.x / 2, display_size.y / 2), imgui.Cond_Always, imgui.ImVec2(0.5, 0.5))
 
-  imgui.SetNextWindowBgAlpha(kissui.window_opacity[0])
+  imgui.SetNextWindowBgAlpha(kissui.window_opacity)
   if imgui.Begin("Add Favorite", kissui.gui.getWindowVisibleBoolPtr("Add Favorite"), bit.bor(imgui.WindowFlags_NoScrollbar ,imgui.WindowFlags_NoResize, imgui.WindowFlags_AlwaysAutoResize)) then
     imgui.Text("Name:")
     imgui.SameLine()
@@ -181,8 +181,8 @@ local function draw()
 
       imgui.PopTextWrapPos()
       if imgui.Button("Connect###connect_button_" .. tostring(favorites_count)) then
-        kissconfig.save_config()
         local player_name = ffi.string(kissui.player_name)
+        kissconfig.set_setting("ui.name", player_name)
         -- if it was added manually (direct IP), trust it (false); otherwise, it's public (true)
         network.connect(addr, player_name, not server.added_manually)
       end

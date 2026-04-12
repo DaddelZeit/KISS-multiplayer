@@ -1,4 +1,7 @@
 local M = {}
+
+local show_drivers = false
+
 M.lerp_factor = 5
 M.players = {}
 M.players_in_cars = {}
@@ -157,7 +160,7 @@ local function update_player_head(dt, player_id, vehicle)
     driver_cam_pos:set(vehicle:getNodeAbsPositionXYZ(cam_node))
     local r = transform.rotation
 
-    local hide = not kissui.show_drivers[0] or kisstransform.inactive[veh_id]
+    local hide = not show_drivers or kisstransform.inactive[veh_id]
     hide = hide or vehicle == getPlayerVehicle(0) and camera_pos:squaredDistance(driver_cam_pos) < distance_threshold
     if not hide and not M.players_in_cars[player_id] then
       spawn_player_head(player_id, veh_id)
@@ -198,10 +201,15 @@ local function update_players(_, dt_sim)
   end
 end
 
+local function onKissMPSettingsChanged(config)
+  show_drivers = config["players.show_drivers"]
+end
+
 M.spawn_player = spawn_player
 M.delete_player_head = delete_player_head
 
 M.get_player_color = get_player_color
 M.onUpdate = update_players
+M.onKissMPSettingsChanged = onKissMPSettingsChanged
 
 return M

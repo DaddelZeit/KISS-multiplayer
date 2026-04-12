@@ -14,6 +14,10 @@ pub struct ServerInfo {
     map: String,
     port: u16,
     version: (u32, u32),
+    #[serde(default)]
+    require_scripts: bool,
+    #[serde(default)]
+    require_mods: bool,
     #[serde(skip)]
     update_time: Option<std::time::Instant>,
 }
@@ -162,7 +166,9 @@ fn outdated_ver(master_outdated: bool) -> String {
             map: map_str.to_string(),
             port: 0,
             version: VERSION,
-            update_time: None
+            update_time: None,
+            require_scripts: false,
+            require_mods: false,
         });
     }
     serde_json::to_string(&server_list).unwrap()
