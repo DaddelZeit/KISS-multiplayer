@@ -7,7 +7,7 @@ local pl, pr = vec3(), vec3()
 local cam_rot = quat()
 
 local function onUpdate()
-  if not network.connection.connected then return end
+  if not kissmp_network.connection.connected then return end
   position:set(core_camera.getPositionXYZ())
   cam_rot:set(core_camera.getQuatXYZW())
 
@@ -21,18 +21,18 @@ local function onUpdate()
 
   --debugDrawer:drawSphere((pl + vec3(0, 2, 0):rotated(quat(getCameraQuat()))), 0.05, ColorF(0,1,0,0.8))
   --debugDrawer:drawSphere((pr + vec3(0, 2, 0):rotated(quat(getCameraQuat()))), 0.05, ColorF(0,0,1,0.8))
-  network.send_data({
+  kissmp_network.send_data({
       SpatialUpdate = {{pl.x, pl.y, pl.z}, {pr.x, pr.y, pr.z}}
   })
 end
 
 local function start_vc()
-  network.send_data('"StartTalking"')
+  kissmp_network.send_data('"StartTalking"')
 end
 
 
 local function end_vc()
-  network.send_data('"EndTalking"')
+  kissmp_network.send_data('"EndTalking"')
 end
 
 M.start_vc = start_vc

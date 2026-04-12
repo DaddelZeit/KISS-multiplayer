@@ -2,19 +2,19 @@ local M = {}
 local imgui = ui_imgui
 
 local function draw(dt)
-  kissui.tabs.favorites.draw_add_favorite_window(gui)
-  if kissui.show_download then return end
+  kissmp_ui.tabs.favorites.draw_add_favorite_window(gui)
+  if kissmp_ui.show_download then return end
 
-  if not kissui.gui.isWindowVisible("KissMP") then return end
-  imgui.SetNextWindowBgAlpha(kissui.window_opacity)
+  if not kissmp_ui.gui.isWindowVisible("KissMP") then return end
+  imgui.SetNextWindowBgAlpha(kissmp_ui.window_opacity)
   imgui.PushStyleVar2(imgui.StyleVar_WindowMinSize, imgui.ImVec2(300, 300))
   imgui.SetNextWindowViewport(imgui.GetMainViewport().ID)
-  if imgui.Begin("KissMP "..network.VERSION_STR) then
+  if imgui.Begin("KissMP "..kissmp_network.VERSION_STR) then
     imgui.Text("Player name:")
-    imgui.InputText("##name", kissui.player_name)
-    if network.connection.connected then
+    imgui.InputText("##name", kissmp_ui.player_name)
+    if kissmp_network.connection.connected then
       if imgui.Button("Disconnect") then
-        network.disconnect()
+        kissmp_network.disconnect()
       end
     end
 
@@ -22,23 +22,23 @@ local function draw(dt)
 
     if imgui.BeginTabBar("server_tabs##") then
       if imgui.BeginTabItem("Server List") then
-        kissui.tabs.server_list.draw(dt)
+        kissmp_ui.tabs.server_list.draw(dt)
         imgui.EndTabItem()
       end
       if imgui.BeginTabItem("Direct Connect") then
-        kissui.tabs.direct_connect.draw()
+        kissmp_ui.tabs.direct_connect.draw()
         imgui.EndTabItem()
       end
       if imgui.BeginTabItem("Create Server") then
-        kissui.tabs.create_server.draw()
+        kissmp_ui.tabs.create_server.draw()
         imgui.EndTabItem()
       end
       if imgui.BeginTabItem("Favourites") then
-        kissui.tabs.favorites.draw()
+        kissmp_ui.tabs.favorites.draw()
         imgui.EndTabItem()
       end
       if imgui.BeginTabItem("Settings") then
-        kissui.tabs.settings.draw(dt)
+        kissmp_ui.tabs.settings.draw(dt)
         imgui.EndTabItem()
       end
       imgui.EndTabBar()

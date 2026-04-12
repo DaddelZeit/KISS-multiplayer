@@ -95,7 +95,7 @@ local function update_transform_info()
     vel_yaw   = obj:getYawAngularVelocity(),
   }
   obj:queueGameEngineLua(string.format(
-    "kisstransform.push_transform(%d, %q)",
+    "kissmp_transform.push_transform(%d, %q)",
     objectId, string_buffer.encode(transform)))
 end
 
@@ -151,7 +151,7 @@ local function send_vehicle_config()
     rotation = {obj:getRotation()},
   }
   obj:queueGameEngineLua(string.format(
-    "vehiclemanager.send_vehicle_config_inner(%d, %q, %q)",
+    "kissmp_vehiclemanager.send_vehicle_config_inner(%d, %q, %q)",
     objectId, jsonEncode(config), string_buffer.encode(data)))
 end
 

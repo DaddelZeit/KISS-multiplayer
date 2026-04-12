@@ -97,13 +97,13 @@ local function disconnect(data)
   if data then
     text = text.." Reason: "..data
   end
-  kissui.chat.add_message(text)
+  kissmp_ui.chat.add_message(text)
   M.connection.connected = false
   
-  if vehiclemanager then
-    vehiclemanager.loading_map = false
+  if kissmp_vehiclemanager then
+    kissmp_vehiclemanager.loading_map = false
   end
-  kissui.show_download = false
+  kissmp_ui.show_download = false
 
   if M.connection.tcp then
     M.connection.tcp:close()
@@ -113,19 +113,19 @@ local function disconnect(data)
   cancel_download()
 
   -- -- Delete the 3D player models from world memory
-  -- for _, v in pairs(kissplayers.players) do
+  -- for _, v in pairs(kissmp_players.players) do
   --   if v then v:delete() end
   -- end
-  -- for _, v in pairs(kissplayers.players_in_cars) do
+  -- for _, v in pairs(kissmp_players.players_in_cars) do
   --   if v then v:delete() end
   -- end
 
   M.players = {}
-  kissplayers.players = {}
-  kissplayers.player_transforms = {}
-  kissplayers.players_in_cars = {}
-  kissplayers.player_heads_attachments = {}
-  kissrichpresence.update()
+  kissmp_players.players = {}
+  kissmp_players.player_transforms = {}
+  kissmp_players.players_in_cars = {}
+  kissmp_players.player_heads_attachments = {}
+  kissmp_richpresence.update()
   
   if getMissionFilename() ~= "" then
     returnToMainMenu()
@@ -140,7 +140,7 @@ local function check_lua(l)
   local filters = {"FS", "check_lua", "handle_lua", "handle_vehicle_lua", "network =", "network=", "message_handlers", "io%.write", "io%.open", "io%.close", "fileOpen", "fileExists", "removeDirectory", "removeFile", "io%."}
   for k, v in pairs(filters) do
     if string.find(l, v) ~= nil then
-      kissui.chat.add_message("Possibly malicious lua command has been send, rejecting. Found: "..v)
+      kissmp_ui.chat.add_message("Possibly malicious lua command has been send, rejecting. Found: "..v)
       return false
     end
   end
@@ -149,7 +149,7 @@ end
 
 local function handle_lua(data)
   if M.is_server_public and not public_scripting then
-    log("W", "kissmp.network.handle_lua", "Blocked arbitrary GE Lua command from public server.")
+    log("W", "kissmp_network.handle_lua", "Blocked arbitrary GE Lua command from public server.")
     return
   end
 
@@ -160,13 +160,13 @@ end
 
 local function handle_vehicle_lua(data)
   if M.is_server_public and not public_scripting then
-    log("W", "kissmp.network.handle_vehicle_lua", "Blocked arbitrary vehicle Lua command from public server.")
+    log("W", "kissmp_network.handle_vehicle_lua", "Blocked arbitrary vehicle Lua command from public server.")
     return
   end
 
   local id = data[1]
   local lua = data[2]
-  local id = vehiclemanager.id_map[id or -1] or 0
+  local id = kissmp_vehiclemanager.id_map[id or -1] or 0
   local vehicle = getObjectByID(id)
   if vehicle and check_lua(lua) then
     vehicle:queueLuaCommand(lua)
@@ -186,46 +186,46 @@ end
 local function handle_player_disconnected(data)
   local id = data
   M.players[id] = nil
-  if kissplayers.players_in_cars[id] then
-    kissplayers.delete_player_head(id)
+  if kissmp_players.players_in_cars[id] then
+    kissmp_players.delete_player_head(id)
   end
 
   -- Delete the 3D player models from world memory
-  if kissplayers.players[id] then
-    kissplayers.players[id]:delete()
-    kissplayers.players[id] = nil
+  if kissmp_players.players[id] then
+    kissmp_players.players[id]:delete()
+    kissmp_players.players[id] = nil
   end
-  kissplayers.player_transforms[id] = nil
+  kissmp_players.player_transforms[id] = nil
 end
 
 local function handle_chat(data)
-  kissui.chat.add_message(data[1], nil, data[2])
+  kissmp_ui.chat.add_message(data[1], nil, data[2])
 end
 
 local function onKissMPLoaded()
-  message_handlers.VehicleUpdate = vehiclemanager.update_vehicle
-  message_handlers.VehicleSpawn = vehiclemanager.spawn_vehicle
-  message_handlers.RemoveVehicle = vehiclemanager.remove_vehicle
-  message_handlers.ResetVehicle = vehiclemanager.reset_vehicle
+  message_handlers.VehicleUpdate = kissmp_vehiclemanager.update_vehicle
+  message_handlers.VehicleSpawn = kissmp_vehiclemanager.spawn_vehicle
+  message_handlers.RemoveVehicle = kissmp_vehiclemanager.remove_vehicle
+  message_handlers.ResetVehicle = kissmp_vehiclemanager.reset_vehicle
   message_handlers.Chat = handle_chat
   message_handlers.SendLua = handle_lua
   message_handlers.PlayerInfoUpdate = handle_player_info
-  message_handlers.VehicleMetaUpdate = vehiclemanager.update_vehicle_meta
+  message_handlers.VehicleMetaUpdate = kissmp_vehiclemanager.update_vehicle_meta
   message_handlers.Pong = handle_pong
   message_handlers.PlayerDisconnected = handle_player_disconnected
   message_handlers.VehicleLuaCommand = handle_vehicle_lua
-  message_handlers.CouplerAttached = vehiclemanager.attach_coupler
-  message_handlers.CouplerDetached = vehiclemanager.detach_coupler
-  message_handlers.ElectricsUndefinedUpdate = vehiclemanager.electrics_diff_update
+  message_handlers.CouplerAttached = kissmp_vehiclemanager.attach_coupler
+  message_handlers.CouplerDetached = kissmp_vehiclemanager.detach_coupler
+  message_handlers.ElectricsUndefinedUpdate = kissmp_vehiclemanager.electrics_diff_update
 
-  message_handlers.VehicleSetPosition = vehiclemanager.set_position
-  message_handlers.VehicleSetPositionRotation = vehiclemanager.set_position_rotation
-  message_handlers.VehicleResetInPlace = vehiclemanager.reset_in_place
+  message_handlers.VehicleSetPosition = kissmp_vehiclemanager.set_position
+  message_handlers.VehicleSetPositionRotation = kissmp_vehiclemanager.set_position_rotation
+  message_handlers.VehicleResetInPlace = kissmp_vehiclemanager.reset_in_place
 end
 
 local function send_data(raw_data, reliable)
   if type(raw_data) == "number" then
-    log("E", "kissmp.network.send_data", "Sending raw data is not implemented. Please report to KissMP developers. Code: "..raw_data)
+    log("E", "kissmp_network.send_data", "Sending raw data is not implemented. Please report to KissMP developers. Code: "..raw_data)
     return
   end
   if not M.connection.connected then return -1 end
@@ -287,20 +287,20 @@ end
 
 local function change_map(map)
   -- if FS:fileExists(map) or FS:directoryExists(map) then
-  --   vehiclemanager.loading_map = true
+  --   kissmp_vehiclemanager.loading_map = true
   --   freeroam_freeroam.startFreeroam(map)
   -- else
-  --   kissui.chat.add_message("Map file doesn't exist. Check if mod containing map is enabled", kissui.COLOR_RED)
+  --   kissmp_ui.chat.add_message("Map file doesn't exist. Check if mod containing map is enabled", kissmp_ui.COLOR_RED)
   --   disconnect()
   -- end
-  vehiclemanager.loading_map = true
+  kissmp_vehiclemanager.loading_map = true
   freeroam_freeroam.startFreeroam(map)
 end
 
 local function connect(addr, player_name, is_public)
   M.is_server_public = is_public or false
-  public_scripting = kissconfig.get_setting("security.public_scripting")
-  public_mods = kissconfig.get_setting("security.public_mods")
+  public_scripting = kissmp_config.get_setting("security.public_scripting")
+  public_mods = kissmp_config.get_setting("security.public_mods")
 
   if M.connection.connected then
     disconnect()
@@ -316,8 +316,8 @@ local function connect(addr, player_name, is_public)
   M.downloaded_bytes = 0
 
   addr = sanitize_addr(addr)
-  log("I", "kissmp.network.connect", "Connecting to "..addr.."...")
-  kissui.chat.add_message("Connecting to "..addr.."...")
+  log("I", "kissmp_network.connect", "Connecting to "..addr.."...")
+  kissmp_ui.chat.add_message("Connecting to "..addr.."...")
   M.connection.tcp = socket.tcp()
   M.connection.tcp:settimeout(3.0)
   M.connection.tcp:connect("127.0.0.1", "7894")
@@ -330,11 +330,11 @@ local function connect(addr, player_name, is_public)
   local connection_confirmed = M.connection.tcp:receive(1)
   if connection_confirmed then
     if connection_confirmed ~= string.char(1) then
-      kissui.chat.add_message("Connection failed.", kissui.COLOR_RED)
+      kissmp_ui.chat.add_message("Connection failed.", kissmp_ui.COLOR_RED)
       return
     end
   else
-    kissui.chat.add_message("Failed to confirm connection. Check if bridge is running.", kissui.COLOR_RED)
+    kissmp_ui.chat.add_message("Failed to confirm connection. Check if bridge is running.", kissmp_ui.COLOR_RED)
     return
   end
 
@@ -346,19 +346,19 @@ local function connect(addr, player_name, is_public)
   local received, _, _ = M.connection.tcp:receive(len)
   local server_info = jsonDecode(received).ServerInfo
   if not server_info then
-    log("E", "kissmp.network.connect", "Failed to fetch server info. Aborting.")
+    log("E", "kissmp_network.connect", "Failed to fetch server info. Aborting.")
     disconnect()
     return
   else
     if (server_info.require_scripts and not public_scripting) or (server_info.require_mods and not public_mods) then
-      kissui.chat.add_message("Connection rejected: Missing permissions.", kissui.COLOR_RED)
-      log("E", "kissmp.network.connect", "Missing permissions. Server requirements do not match game settings.")
+      kissmp_ui.chat.add_message("Connection rejected: Missing permissions.", kissmp_ui.COLOR_RED)
+      log("E", "kissmp_network.connect", "Missing permissions. Server requirements do not match game settings.")
       disconnect()
       return
     end
   end
-  log("I", "kissmp.network.connect", "Server name: "..server_info.name)
-  log("I", "kissmp.network.connect", "Player count: "..server_info.player_count)
+  log("I", "kissmp_network.connect", "Server name: "..server_info.name)
+  log("I", "kissmp_network.connect", "Player count: "..server_info.player_count)
 
   M.connection.tcp:settimeout(0.0)
   M.connection.connected = true
@@ -381,14 +381,14 @@ local function connect(addr, player_name, is_public)
   }
   send_data(client_info, true)
 
-  kissmods.set_mods_list(server_info.mods)
-  kissmods.update_status_all()
+  kissmp_mods.set_mods_list(server_info.mods)
+  kissmp_mods.update_status_all()
 
   local missing_mods = {}
   local mod_names = {}
   local available_mods = {}
   local total_missing_bytes = 0
-  for _, mod in pairs(kissmods.mods) do
+  for _, mod in pairs(kissmp_mods.mods) do
     table.insert(mod_names, mod.name)
     if mod.status ~= "ok" then
       table.insert(missing_mods, mod.name)
@@ -402,17 +402,17 @@ local function connect(addr, player_name, is_public)
   M.download_total_bytes = total_missing_bytes
   M.downloaded_bytes = 0
  
-  kissmods.deactivate_all_mods()
+  kissmp_mods.deactivate_all_mods()
   if #available_mods > 0 then
-    kissmods.mount_mods(available_mods)
+    kissmp_mods.mount_mods(available_mods)
   end
   for k, v in pairs(missing_mods) do
-    log("I", "kissmp.network.connect", "Missing Mod "..k..": "..v)
+    log("I", "kissmp_network.connect", "Missing Mod "..k..": "..v)
   end
   if #missing_mods > 0 then
     -- Do not allow public servers to force mod downloads
     if M.is_server_public and not public_mods then
-      kissui.chat.add_message("Connection rejected: Missing mods.", kissui.COLOR_RED)
+      kissmp_ui.chat.add_message("Connection rejected: Missing mods.", kissmp_ui.COLOR_RED)
       disconnect()
       return
     else
@@ -423,18 +423,18 @@ local function connect(addr, player_name, is_public)
       end
     end
   end
-  vehiclemanager.loading_map = true
+  kissmp_vehiclemanager.loading_map = true
   if #missing_mods == 0 then
-    kissmods.mount_mods(mod_names)
+    kissmp_mods.mount_mods(mod_names)
     change_map(server_info.map)
   end
-  kissrichpresence.update()
-  kissui.chat.add_message("Connected!")
+  kissmp_richpresence.update()
+  kissmp_ui.chat.add_message("Connected!")
 end
 
 local function on_finished_download()
   M.download_start_time = 0
-  vehiclemanager.loading_map = true
+  kissmp_vehiclemanager.loading_map = true
   change_map(M.connection.server_info.map)
 end
 
@@ -495,7 +495,7 @@ local function onUpdate(dt)
 
     elseif string.byte(msg_type) == 0 then -- Binary data
       if M.is_server_public and not public_mods then
-        kissui.chat.add_message("Connection rejected: Server tried to download a mod.", kissui.COLOR_RED)
+        kissmp_ui.chat.add_message("Connection rejected: Server tried to download a mod.", kissmp_ui.COLOR_RED)
         disconnect()
         return
       end
@@ -511,7 +511,7 @@ local function onUpdate(dt)
       end
 
       M.downloading = true
-      kissui.show_download = true
+      kissmp_ui.show_download = true
 
       local len_n = bytesToU32(name_b)
       local name, _, _ = M.connection.tcp:receive(len_n)
@@ -550,14 +550,14 @@ local function onUpdate(dt)
 
       local file = M.downloads[name]
       if not file then
-        file = kissmods.open_file(name)
+        file = kissmp_mods.open_file(name)
         M.downloads[name] = file
       end
 
       if file and file_data then
         file:write(file_data)
       else
-        kissui.chat.add_message("Error: Could not write file to disk. Check permissions or disk space.", kissui.COLOR_RED)
+        kissmp_ui.chat.add_message("Error: Could not write file to disk. Check permissions or disk space.", kissmp_ui.COLOR_RED)
         disconnect("File write error")
         return
       end
@@ -568,7 +568,7 @@ local function onUpdate(dt)
           M.downloads[name] = nil
         end
 
-        kissmods.mount_mod(name)
+        kissmp_mods.mount_mod(name)
         M.downloads_status[name] = nil
         M.downloads_received[name] = nil
 
@@ -579,7 +579,7 @@ local function onUpdate(dt)
           end
         else
           M.downloading = false
-          kissui.show_download = false
+          kissmp_ui.show_download = false
           M.downloaded_bytes = M.download_total_bytes
           on_finished_download()
         end

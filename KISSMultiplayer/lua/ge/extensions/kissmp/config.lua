@@ -46,7 +46,7 @@ local function save_config()
     if k == "security.base_secret_v2" or k == "ui.name" or defaults[k] ~= nil then
       result.data[k] = v
     else
-      log("W", "kissmp.kissconfig.save_config", "Unknown settings key: "..tostring(k)..". Will be skipped in save.")
+      log("W", "kissmp_config.save_config", "Unknown settings key: "..tostring(k)..". Will be skipped in save.")
     end
   end
 
@@ -117,7 +117,7 @@ local function onKissMPLoaded()
   load_config()
 
   -- verify mod install
-  local filepath = FS:findOverrides("/lua/ge/extensions/kissconfig.lua")
+  local filepath = FS:findOverrides("/lua/ge/extensions/kissmp/main.lua")
   if filepath and filepath[1] then
     filepath = filepath[1]:gsub("\\", "/"):match("/mods.+")
     M.install_path = filepath

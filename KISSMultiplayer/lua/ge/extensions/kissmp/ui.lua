@@ -87,7 +87,7 @@ local function change_scale(new_uiscale)
 end
 
 local function onUpdate(dt)
-  if getMissionFilename() ~= '' and not vehiclemanager.is_network_session then
+  if getMissionFilename() ~= '' and not kissmp_vehiclemanager.is_network_session then
     return
   end
 
@@ -99,7 +99,7 @@ local function onUpdate(dt)
   M.chat.draw()
   M.download_window.draw()
 
-  if kissconfig.incorrect_install then
+  if kissmp_config.incorrect_install then
     draw_incorrect_install()
   end
 

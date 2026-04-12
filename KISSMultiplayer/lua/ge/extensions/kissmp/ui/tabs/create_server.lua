@@ -42,8 +42,8 @@ local function host_server()
   }
   local b, _, _  = http.request("http://127.0.0.1:3693/host/"..jsonEncode(config))
   if b == "ok" then
-    local player_name = ffi.string(kissui.player_name)
-    network.connect("127.0.0.1:"..port, player_name, false)
+    local player_name = ffi.string(kissmp_ui.player_name)
+    kissmp_network.connect("127.0.0.1:"..port, player_name, false)
   end
 end
 
@@ -131,7 +131,7 @@ local function draw()
   imgui.Text("Mods:")
   imgui.BeginChild1("###Mods", imgui.ImVec2(0, -30), true)
   for k, v in pairs(mods) do
-    if not kissmods.is_special_mod(v) then
+    if not kissmp_mods.is_special_mod(v) then
       local forced = forced_mods[v] or false
       local checked = imgui.BoolPtr(M.mods[v] ~= nil or forced)
 

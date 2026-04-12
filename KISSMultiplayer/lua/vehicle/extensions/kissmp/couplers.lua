@@ -37,7 +37,7 @@ local function onCouplerAttached(node_id, obj2_id, obj2_node_id)
     node_b_id = obj2_node_id
   }
   obj:queueGameEngineLua(string.format(
-    "vehiclemanager.attach_coupler_inner(%q)",
+    "kissmp_vehiclemanager.attach_coupler_inner(%q)",
     string_buffer.encode(data)))
 end
 
@@ -55,7 +55,7 @@ local function onCouplerDetached(node_id, obj2_id, obj2_node_id)
     node_b_id = obj2_node_id
   }
   obj:queueGameEngineLua(string.format(
-    "vehiclemanager.detach_coupler_inner(%q)",
+    "kissmp_vehiclemanager.detach_coupler_inner(%q)",
     string_buffer.encode(data)))
 end
 

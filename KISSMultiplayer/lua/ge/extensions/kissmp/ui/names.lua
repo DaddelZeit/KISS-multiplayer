@@ -15,13 +15,13 @@ local use_z_names = true
 
 local function draw()
   camera_pos:set(core_camera.getPositionXYZ())
-  for id, player in pairs(network.players) do
-    if id ~= network.connection.client_id and player.current_vehicle then
-      local vehicle_id = vehiclemanager.id_map[player.current_vehicle] or -1
+  for id, player in pairs(kissmp_network.players) do
+    if id ~= kissmp_network.connection.client_id and player.current_vehicle then
+      local vehicle_id = kissmp_vehiclemanager.id_map[player.current_vehicle] or -1
       local vehicle = getObjectByID(vehicle_id)
       local distance = 0
 
-      local raw_transform = kisstransform.raw_transforms[player.current_vehicle]
+      local raw_transform = kissmp_transform.raw_transforms[player.current_vehicle]
       if vehicle and vehicle:getActive() then
         vehicle_center:set(be:getObjectOOBBCenterXYZ(vehicle_id))
         vehicle_offset:set(be:getObjectOOBBHalfAxisXYZ(vehicle_id, 2))
@@ -37,7 +37,7 @@ local function draw()
       end
 
       if colorful_names then
-        local r,g,b,_ = kissplayers.get_player_color(id)
+        local r,g,b,_ = kissmp_players.get_player_color(id)
         text_color.r = r
         text_color.g = g
         text_color.b = b

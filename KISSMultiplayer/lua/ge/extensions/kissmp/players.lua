@@ -83,8 +83,8 @@ local function spawn_player(data)
   )
 
   local player_mesh_id = player:getID()
-  vehiclemanager.id_map[data.server_id] = player_mesh_id
-  vehiclemanager.server_ids[player_mesh_id] = data.server_id
+  kissmp_vehiclemanager.id_map[data.server_id] = player_mesh_id
+  kissmp_vehiclemanager.server_ids[player_mesh_id] = data.server_id
 
   M.players[data.server_id] = player
   M.player_transforms[data.server_id] = {
@@ -154,13 +154,13 @@ local vehicle_vel = vec3()
 local function update_player_head(dt, player_id, vehicle)
   local cam_node, _ = core_camera.getDriverData(vehicle)
   local veh_id = vehicle:getID()
-  local transform = kisstransform.local_transforms[veh_id]
+  local transform = kissmp_transform.local_transforms[veh_id]
 
   if cam_node and transform then
     driver_cam_pos:set(vehicle:getNodeAbsPositionXYZ(cam_node))
     local r = transform.rotation
 
-    local hide = not show_drivers or kisstransform.inactive[veh_id]
+    local hide = not show_drivers or kissmp_transform.inactive[veh_id]
     hide = hide or vehicle == getPlayerVehicle(0) and camera_pos:squaredDistance(driver_cam_pos) < distance_threshold
     if not hide and not M.players_in_cars[player_id] then
       spawn_player_head(player_id, veh_id)
@@ -184,13 +184,13 @@ local function update_player_head(dt, player_id, vehicle)
 end
 
 local function update_players(_, dt_sim)
-  if vehiclemanager and vehiclemanager.loading_map then return end
+  if kissmp_vehiclemanager and kissmp_vehiclemanager.loading_map then return end
 
   update_unicycle_replacements(dt_sim)
 
   camera_pos:set(core_camera.getPositionXYZ())
-  for player_id, player_data in pairs(network.players) do
-    local vehicleId = vehiclemanager.id_map[player_data.current_vehicle or -1] or -1
+  for player_id, player_data in pairs(kissmp_network.players) do
+    local vehicleId = kissmp_vehiclemanager.id_map[player_data.current_vehicle or -1] or -1
     local vehicle = getObjectByID(vehicleId)
 
     if vehicle and not blacklist[vehicle:getJBeamFilename()] then

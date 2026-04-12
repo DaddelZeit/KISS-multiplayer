@@ -9,19 +9,19 @@ M.bridge_connected = false
 
 local extension_load_list = {
   -- network first
-  "network",
-  "vehiclemanager",
-  "kissrichpresence",
-  "kissvoicechat",
+  "kissmp_network",
+  "kissmp_vehiclemanager",
+  "kissmp_richpresence",
+  "kissmp_voicechat",
 
   -- other important client stuff
-  "kissmods",
-  "kissconfig",
-  "kissplayers",
-  "kisstransform",
+  "kissmp_mods",
+  "kissmp_config",
+  "kissmp_players",
+  "kissmp_transform",
 
   -- ui goes last
-  "kissui",
+  "kissmp_ui",
 }
 
 local function check_bridge_connect()

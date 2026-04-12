@@ -2,7 +2,7 @@ local M = {}
 M.mods = {}
 
 local function is_special_mod(mod_path)
-  local special_mods = {kissconfig.install_path, "translations.zip"}
+  local special_mods = {kissmp_config.install_path, "translations.zip"}
   local mod_path_lower = string.lower(mod_path)
   for _, special_mod in pairs(special_mods) do
     if string.endswith(mod_path_lower, special_mod) then
@@ -46,7 +46,7 @@ local function deactivate_all_mods()
   local unpacked_mods = FS:directoryList("/mods/unpacked/", "*", 1)
   for k, mod_path in pairs(unpacked_mods) do
     local path = mod_path.."/"
-    if path ~= kissconfig.install_path and not is_app_mod(mod_path) then
+    if path ~= kissmp_config.install_path and not is_app_mod(mod_path) then
       FS:unmount(mod_path.."/")
     end
   end
