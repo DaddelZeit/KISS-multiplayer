@@ -115,7 +115,24 @@ end
 
 local function onKissMPLoaded()
   load_config()
-  if #FS:findFiles("/mods/", "kissmultiplayer.zip", 1000) == 0 then
+
+  -- verify mod install
+  local filepath = FS:findOverrides("/lua/ge/extensions/kissconfig.lua")
+  if filepath and filepath[1] then
+    filepath = filepath[1]:gsub("\\", "/"):match("/mods.+")
+    M.install_path = filepath
+
+    local modname = string.lower(filepath)
+    modname = modname:gsub('dir:/', '')
+    modname = modname:gsub('/mods/', '')
+    modname = modname:gsub('repo/', '')
+    modname = modname:gsub('unpacked/', '')
+    modname = modname:gsub('/', '')
+    modname = modname:gsub('.zip$', '')
+    M.install_name = modname
+
+    M.incorrect_install = false
+  else
     M.incorrect_install = true
   end
 end
