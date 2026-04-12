@@ -97,6 +97,7 @@ local function load_config()
     config["security.base_secret_v2"] = generate_base_secret()
   end
 
+  magic_config = {}
   local mt = {
     __index = function(_, key)
       return get_setting(key)
