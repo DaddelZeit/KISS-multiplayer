@@ -1,7 +1,5 @@
 local M = {}
 
-M.incorrect_install = false
-
 local queue_settings_save_timer = 0
 local target_config_version = 2
 local defaults = {}
@@ -115,26 +113,6 @@ end
 
 local function onKissMPLoaded()
   load_config()
-
-  -- verify mod install
-  local filepath = FS:findOverrides("/lua/ge/extensions/kissmp/main.lua")
-  if filepath and filepath[1] then
-    filepath = filepath[1]:gsub("\\", "/"):match("/mods.+")
-    M.install_path = filepath
-
-    local modname = string.lower(filepath)
-    modname = modname:gsub('dir:/', '')
-    modname = modname:gsub('/mods/', '')
-    modname = modname:gsub('repo/', '')
-    modname = modname:gsub('unpacked/', '')
-    modname = modname:gsub('/', '')
-    modname = modname:gsub('.zip$', '')
-    M.install_name = modname
-
-    M.incorrect_install = false
-  else
-    M.incorrect_install = true
-  end
 end
 
 M.set_setting = set_setting

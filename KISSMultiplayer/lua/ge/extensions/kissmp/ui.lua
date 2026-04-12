@@ -99,7 +99,7 @@ local function onUpdate(dt)
   M.chat.draw()
   M.download_window.draw()
 
-  if kissmp_config.incorrect_install then
+  if kissmp_main.incorrect_install then
     draw_incorrect_install()
   end
 
