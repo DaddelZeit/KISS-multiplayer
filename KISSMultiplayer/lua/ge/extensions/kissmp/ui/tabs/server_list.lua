@@ -102,13 +102,11 @@ end
 
 local function refresh_server_list(m)
   local kissui = kissui or m
-  local b, _, _  = http.request("http://127.0.0.1:3693/check")
-  if b and b == "ok" then
-    kissui.bridge_launched = true
-  end
-  local b, _, _  = http.request("http://127.0.0.1:3693/"..kissui.master_addr.."/"..VERSION_PRTL)
-  if b then
-    M.server_list = jsonDecode(b) or {}
+  if kissmp_main.check_bridge_connect() then
+    local b, _, _  = http.request("http://127.0.0.1:3693/"..kissui.master_addr.."/"..VERSION_PRTL)
+    if b then
+      M.server_list = jsonDecode(b) or {}
+    end
   end
 end
 
@@ -215,7 +213,7 @@ local function draw(dt)
   end
 
   imgui.PushTextWrapPos(0)
-  if not kissui.bridge_launched then
+  if not kissmp_main.bridge_launched then
     imgui.Text("The bridge is not running. Please launch the bridge and then click 'Refresh List'.")
   elseif server_count == 0 then
     imgui.Text("Server list is empty")

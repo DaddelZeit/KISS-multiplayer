@@ -1,5 +1,8 @@
 local M = {}
 
+local http = require("socket.http")
+http.TIMEOUT = 0.5
+
 local first_update = false
 
 M.bridge_connected = false
@@ -21,6 +24,17 @@ local extension_load_list = {
   "kissui",
 }
 
+local function check_bridge_connect()
+  local b, _, _  = http.request("http://127.0.0.1:3693/check")
+  if b and b == "ok" then
+    M.bridge_launched = true
+  else
+    M.bridge_launched = false
+  end
+
+  return M.bridge_launched
+end
+
 local function onUpdate()
   if first_update then return end
   first_update = true
@@ -30,6 +44,7 @@ local function onUpdate()
     extensions.load(extension_load_list[i])
   end
 
+  check_bridge_connect()
   extensions.hook("onKissMPLoaded")
 end
 
@@ -39,6 +54,8 @@ local function onExtensionUnloaded()
     extensions.unload(extension_load_list[i])
   end
 end
+
+M.check_bridge_connect = check_bridge_connect
 
 M.onUpdate = onUpdate
 M.onExtensionUnloaded = onExtensionUnloaded
