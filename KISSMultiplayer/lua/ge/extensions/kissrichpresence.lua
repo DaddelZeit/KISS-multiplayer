@@ -13,4 +13,8 @@ local function update()
 end
 
 M.update = update
+M.onExtensionLoaded = function()
+  setExtensionUnloadMode(M, "manual")
+end
+
 return M

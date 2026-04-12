@@ -127,5 +127,8 @@ M.load_config = load_config
 
 M.onUpdate = update
 M.onKissMPLoaded = onKissMPLoaded
+M.onExtensionLoaded = function()
+  setExtensionUnloadMode(M, "manual")
+end
 
 return M

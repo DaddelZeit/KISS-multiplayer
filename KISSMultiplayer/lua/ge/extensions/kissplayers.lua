@@ -207,9 +207,12 @@ end
 
 M.spawn_player = spawn_player
 M.delete_player_head = delete_player_head
-
 M.get_player_color = get_player_color
+
 M.onUpdate = update_players
 M.onKissMPSettingsChanged = onKissMPSettingsChanged
+M.onExtensionLoaded = function()
+  setExtensionUnloadMode(M, "manual")
+end
 
 return M

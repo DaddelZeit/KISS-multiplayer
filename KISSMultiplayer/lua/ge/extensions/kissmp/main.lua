@@ -40,7 +40,10 @@ local function onExtensionUnloaded()
   end
 end
 
-M.onExtensionUnloaded = onExtensionUnloaded
 M.onUpdate = onUpdate
+M.onExtensionUnloaded = onExtensionUnloaded
+M.onExtensionLoaded = function()
+  setExtensionUnloadMode(M, "manual")
+end
 
 return M

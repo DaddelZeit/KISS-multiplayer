@@ -83,7 +83,11 @@ end
 
 M.update_vehicle_transform = update_vehicle_transform
 M.push_transform = push_transform
+
 M.onUpdate = update
 M.onKissMPSettingsChanged = onKissMPSettingsChanged
+M.onExtensionLoaded = function()
+  setExtensionUnloadMode(M, "manual")
+end
 
 return M

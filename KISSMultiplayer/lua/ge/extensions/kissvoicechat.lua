@@ -35,8 +35,12 @@ local function end_vc()
   network.send_data('"EndTalking"')
 end
 
-M.onUpdate = onUpdate
 M.start_vc = start_vc
 M.end_vc = end_vc
+
+M.onUpdate = onUpdate
+M.onExtensionLoaded = function()
+  setExtensionUnloadMode(M, "manual")
+end
 
 return M

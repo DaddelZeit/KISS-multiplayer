@@ -130,6 +130,9 @@ end
 M.onKissMPSettingsChanged = onKissMPSettingsChanged
 M.onKissMPLoaded = open_ui
 M.onUpdate = onUpdate
+M.onExtensionLoaded = function()
+  setExtensionUnloadMode(M, "manual")
+end
 
 -- Backwards compatability
 M.add_message = M.chat.add_message

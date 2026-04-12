@@ -133,4 +133,8 @@ M.set_mods_list = set_mods_list
 M.update_status_all = update_status_all
 M.update_status = update_status
 
+M.onExtensionLoaded = function()
+  setExtensionUnloadMode(M, "manual")
+end
+
 return M

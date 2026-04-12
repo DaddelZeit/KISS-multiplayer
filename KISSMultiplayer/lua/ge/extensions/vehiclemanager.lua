@@ -664,4 +664,8 @@ M.set_position = set_position
 M.set_position_rotation = set_position_rotation
 M.reset_in_place = reset_in_place
 
+M.onExtensionLoaded = function()
+  setExtensionUnloadMode(M, "manual")
+end
+
 return M

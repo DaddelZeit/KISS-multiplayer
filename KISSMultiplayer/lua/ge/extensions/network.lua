@@ -620,5 +620,8 @@ M.send_data = send_data
 M.onUpdate = onUpdate
 M.onKissMPLoaded = onKissMPLoaded
 M.onKissMPSettingsChanged = onKissMPSettingsChanged
+M.onExtensionLoaded = function()
+  setExtensionUnloadMode(M, "manual")
+end
 
 return M
