@@ -100,7 +100,7 @@ local function onUpdate(dt)
   M.chat.draw()
   M.download_window.draw()
 
-  if M.incorrect_install then
+  if kissconfig.incorrect_install then
     draw_incorrect_install()
   end
 

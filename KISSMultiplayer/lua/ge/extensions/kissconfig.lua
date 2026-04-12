@@ -1,5 +1,7 @@
 local M = {}
 
+M.incorrect_install = false
+
 local queue_settings_save_timer = 0
 local target_config_version = 2
 local defaults = {}
@@ -113,7 +115,7 @@ end
 local function init()
   load_config()
   if #FS:findFiles("/mods/", "kissmultiplayer.zip", 1000) == 0 then
-    kissui.incorrect_install = true
+    M.incorrect_install = true
   end
 end
 
