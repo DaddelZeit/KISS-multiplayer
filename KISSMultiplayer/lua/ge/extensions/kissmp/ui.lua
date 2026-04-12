@@ -87,7 +87,7 @@ local function change_scale(new_uiscale)
 end
 
 local function onUpdate(dt)
-  if getMissionFilename() ~= '' and not kissmp_vehiclemanager.is_network_session then
+  if getMissionFilename() ~= '' and not kissmp_network.connection.connected then
     return
   end
 

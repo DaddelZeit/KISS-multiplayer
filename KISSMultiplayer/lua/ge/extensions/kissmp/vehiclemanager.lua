@@ -15,7 +15,6 @@ M.server_ids = {}
 M.ownership = {}
 M.vehicle_updates_buffer = {}
 M.packet_gen_buffer = {}
-M.is_network_session = false
 M.delay_spawns = false
 M.vehicle_buffer = {}
 
@@ -622,7 +621,6 @@ local function onVehicleSwitched(_id, new_id)
 end
 
 local function onMissionLoaded(mission)
-  M.is_network_session = kissmp_network.connection.connected
   if not kissmp_network.connection.connected then return end
   M.id_map = {}
   M.ownership = {}
