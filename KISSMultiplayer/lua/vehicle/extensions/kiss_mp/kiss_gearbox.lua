@@ -8,7 +8,7 @@ local gearbox = nil
 local last_received_data = {}
 
 local function get_gearbox_data()
-  local state = mainController.getState()
+  local state = mainController.getState and mainController.getState() or {}
   local data = {
     vehicle_id = objectId,
     lock_coef = gearbox and gearbox.lockCoef or 1,
@@ -24,7 +24,7 @@ end
 local function apply(buffer_data)
   local data = string_buffer.decode(buffer_data)
 
-  if last_received_data.grb_mde ~= data.grb_mde or last_received_data.grb_idx ~= data.grb_idx then
+  if mainController.setState and (last_received_data.grb_mde ~= data.grb_mde or last_received_data.grb_idx ~= data.grb_idx) then
     mainController.setState(data)
   end
 
