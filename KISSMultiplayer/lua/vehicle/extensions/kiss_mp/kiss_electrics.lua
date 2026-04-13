@@ -3,10 +3,6 @@ local M = {}
 local string_buffer = require("string.buffer")
 
 local prev_electrics = {}
-local prev_signal_electrics = {}
-local last_engine_state = true
-local engine_timer = 0
-local ownership = false
 
 local ignored_keys = {
   throttle = true,
@@ -124,8 +120,6 @@ local ignored_keys = {
   checkengine = true,
 }
 
-local received_data = {}
-
 local electrics_handlers = {
   lights_state = function(v)
     electrics.setLightsState(v)
@@ -191,34 +185,20 @@ local function send()
 end
 
 local function apply_diff_signals(diff)
-  local signal_left_input = diff["signal_left_input"] or prev_signal_electrics["signal_left_input"] or 0
-  local signal_right_input = diff["signal_right_input"] or prev_signal_electrics["signal_right_input"] or 0
-  local hazard_enabled = (signal_left_input > 0.5 and signal_right_input > 0.5)
+  local signal_left_input = diff.signal_left_input or electrics.values.signal_left_input or 0
+  local signal_right_input = diff.signal_right_input or electrics.values.signal_right_input or 0
+  local hazard_enabled = (signal_left_input == 1 and signal_right_input == 1)
 
   if hazard_enabled then
-    electrics.set_warn_signal(1)
+    electrics.set_warn_signal(true)
   else
-    electrics.set_warn_signal(0)
-    if signal_left_input > 0.5 then
-      electrics.toggle_left_signal()
-    elseif signal_right_input > 0.5 then
-      electrics.toggle_right_signal()
-    end
+    electrics.set_warn_signal(false)
+    electrics.set_left_signal(signal_left_input == 1)
+    electrics.set_right_signal(signal_right_input == 1)
   end
 
-  prev_signal_electrics["signal_left_input"] = signal_left_input
-  prev_signal_electrics["signal_right_input"] = signal_right_input
-end
-
-local function set_drive_mode(electric_name, drive_mode_controller, desired_value)
-  -- drive modes only allow applying them by the key, we'll cycle all of them and
-  -- if it's not found it'll return to the previous state
-  local currentDriveMode = drive_mode_controller.getCurrentDriveModeKey()
-  while true do
-    drive_mode_controller.nextDriveMode()
-    if math.abs(electrics.values[electric_name] - desired_value) < 0.1 then break end
-    if drive_mode_controller.getCurrentDriveModeKey() == currentDriveMode then break end
-  end
+  diff.signal_left_input = nil
+  diff.signal_right_input = nil
 end
 
 local function update_advanced_coupler_state(coupler_control_controller, value)
@@ -233,11 +213,11 @@ end
 
 local function apply_diff(buffer_data)
   local diff = string_buffer.decode(buffer_data)
-  apply_diff_signals(diff)
+  if diff.signal_left_input or diff.signal_right_input then
+    apply_diff_signals(diff)
+  end
 
   for k, v in pairs(diff) do
-    received_data[k] = v
-
     local handler = electrics_handlers[k]
     if handler then
       handler(v)
@@ -370,17 +350,10 @@ local function onExtensionLoaded()
   end
 end
 
-local function kissUpdateOwnership(owned)
-  ownership = owned
-end
-
 M.send = send
 M.apply_diff = apply_diff
 M.ignore_key = ignore_key
 
-M.kissUpdateOwnership = kissUpdateOwnership
-
 M.onExtensionLoaded = onExtensionLoaded
-M.updateGFX = updateGFX
 
 return M
