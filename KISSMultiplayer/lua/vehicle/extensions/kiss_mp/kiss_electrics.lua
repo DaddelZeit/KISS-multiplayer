@@ -107,6 +107,21 @@ local ignored_keys = {
   hasTCS = true,
   alsActive = true,
   alsState = true,
+  airIntake = true,
+  ignition = true,
+  running = true,
+  electricalLoadCoef = true,
+  nop = true,
+  boostMax = true,
+  turboBoostMax = true,
+  parkingbrakelight = true,
+  brakeGlow_FR = true,
+  brakeGlow_FL = true,
+  brakeGlow_RR = true,
+  brakeGlow_RL = true,
+  minGearIndex = true,
+  maxGearIndex = true,
+  checkengine = true,
 }
 
 local received_data = {}
@@ -125,10 +140,15 @@ local electrics_handlers = {
     electrics.horn(v > 0.5)
   end,
   ignitionLevel = function(v)
+    if v == 2 and electrics.values.ignitionLevel == 3 then
+      -- this means we're currently starting the engine and it's supposed to run
+      return
+    end
     electrics.setIgnitionLevel(v)
   end,
   engineRunning = function(v)
-    if v == 1 and (received_data.ignitionLevel or 2) >= 2 then
+    if v == 1 then
+      electrics.setIgnitionLevel(3)
       controller.mainController.setEngineIgnition(true)
       controller.mainController.setStarter(true)
     end
@@ -217,11 +237,12 @@ local function apply_diff(buffer_data)
 
   for k, v in pairs(diff) do
     received_data[k] = v
-    electrics.values[k] = v
 
     local handler = electrics_handlers[k]
     if handler then
       handler(v)
+    else
+      electrics.values[k] = v
     end
   end
 end
