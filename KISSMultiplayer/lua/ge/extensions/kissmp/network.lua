@@ -188,6 +188,7 @@ local function onKissMPLoaded()
   message_handlers.CouplerAttached = kissmp_vehiclemanager.attach_coupler
   message_handlers.CouplerDetached = kissmp_vehiclemanager.detach_coupler
   message_handlers.ElectricsUndefinedUpdate = kissmp_vehiclemanager.electrics_diff_update
+  message_handlers.ControllersUndefinedUpdate = kissmp_vehiclemanager.controllers_diff_update
 
   message_handlers.VehicleSetPosition = kissmp_vehiclemanager.set_position
   message_handlers.VehicleSetPositionRotation = kissmp_vehiclemanager.set_position_rotation
@@ -257,13 +258,6 @@ local function generate_secret(server_identifier)
 end
 
 local function change_map(map)
-  -- if FS:fileExists(map) or FS:directoryExists(map) then
-  --   kissmp_vehiclemanager.loading_map = true
-  --   freeroam_freeroam.startFreeroam(map)
-  -- else
-  --   kissmp_ui.chat.add_message("Map file doesn't exist. Check if mod containing map is enabled", kissmp_ui.COLOR_RED)
-  --   disconnect()
-  -- end
   kissmp_vehiclemanager.loading_map = true
   freeroam_freeroam.startFreeroam(map)
 end

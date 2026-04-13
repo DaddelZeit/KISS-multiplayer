@@ -50,7 +50,7 @@ impl Server {
                 for (_, vehicle) in &self.vehicles {
                     let _ = connection
                         .ordered
-                        .send(ServerCommand::VehicleSpawn(vehicle.data.clone()))
+                        .send(ServerCommand::VehicleSpawn(vehicle.data.clone(), vehicle.electrics_undefined.clone(), vehicle.controller_undefined.clone()))
                         .await;
                 }
                 for info in client_info_list {
@@ -219,17 +219,41 @@ impl Server {
                         if let Some(server_id) =
                             self.get_server_id_from_game_id(client_id, vehicle_id)
                         {
-                            /* if let Some(vehicle) = self.vehicles.get_mut(&server_id) {
-                                for (key, value) in &undefined_update.diff {
-                                    if let Some(electrics) = &mut vehicle.electrics {
-                                        electrics.undefined.insert(key.clone(), *value);
+                            // Server-side caching
+                            if let Some(vehicle) = self.vehicles.get_mut(&server_id) {
+                                if let Some(electrics_undefined) = &mut vehicle.electrics_undefined {
+                                    for (key, value) in &undefined_update.diff {
+                                        electrics_undefined.diff.insert(key.clone(), *value);
                                     }
                                 }
-                            }*/
+                            }
                             for (_, client) in &mut self.connections {
                                 let _ = client
                                     .ordered
                                     .send(ServerCommand::ElectricsUndefinedUpdate(
+                                        server_id,
+                                        undefined_update.clone(),
+                                    ))
+                                    .await;
+                            }
+                        }
+                    }
+                    ControllersUndefinedUpdate(vehicle_id, undefined_update) => {
+                        if let Some(server_id) =
+                            self.get_server_id_from_game_id(client_id, vehicle_id)
+                        {
+                            // Server-side caching
+                            if let Some(vehicle) = self.vehicles.get_mut(&server_id) {
+                                if let Some(controller_undefined) = &mut vehicle.controller_undefined {
+                                    for (key, value) in &undefined_update.diff {
+                                        controller_undefined.diff.insert(key.clone(), value.clone());
+                                    }
+                                }
+                            }
+                            for (_, client) in &mut self.connections {
+                                let _ = client
+                                    .ordered
+                                    .send(ServerCommand::ControllersUndefinedUpdate(
                                         server_id,
                                         undefined_update.clone(),
                                     ))

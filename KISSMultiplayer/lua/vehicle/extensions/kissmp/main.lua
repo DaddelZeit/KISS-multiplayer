@@ -6,6 +6,7 @@ local extension_load_list = {
   "kissmp_input",
   "kissmp_gearbox",
   "kissmp_electrics",
+  "kissmp_controllers",
   "kissmp_couplers",
 }
 

@@ -6,6 +6,8 @@ pub struct Vehicle {
     pub electrics: Option<Electrics>,
     pub gearbox: Option<Gearbox>,
     pub data: VehicleData,
+    pub electrics_undefined: Option<ElectricsUndefined>,
+    pub controller_undefined: Option<ControllerUndefined>,
 }
 
 impl crate::Server {
@@ -93,10 +95,23 @@ impl crate::Server {
         let mut data = data.clone();
         data.server_id = server_id;
         data.owner = owner;
+        let vehicle = Vehicle {
+            data,
+            gearbox: None,
+            electrics: None,
+            transform: None,
+            electrics_undefined: Some(ElectricsUndefined {
+                diff: HashMap::new(),
+            }),
+            controller_undefined: Some(ControllerUndefined {
+                diff: HashMap::new(),
+            }),
+        };
+
         for (_, client) in &mut self.connections {
             let _ = client
                 .ordered
-                .send(ServerCommand::VehicleSpawn(data.clone()))
+                .send(ServerCommand::VehicleSpawn(vehicle.data.clone(), vehicle.electrics_undefined.clone(), vehicle.controller_undefined.clone()))
                 .await;
         }
         if let Some(owner) = owner {
@@ -107,16 +122,11 @@ impl crate::Server {
             self.vehicle_ids
                 .get_mut(&owner)
                 .unwrap()
-                .insert(data.in_game_id, server_id);
+                .insert(vehicle.data.in_game_id, server_id);
         }
         self.vehicles.insert(
             server_id,
-            Vehicle {
-                data,
-                gearbox: None,
-                electrics: None,
-                transform: None,
-            },
+            vehicle,
         );
 
         let _ = self.update_lua_vehicles();
