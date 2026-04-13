@@ -6,8 +6,8 @@ pub struct ElectricsUndefined {
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
-pub struct SerializedUndefined {
-    pub diff: String,
+pub struct ControllerUndefined {
+    pub diff: std::collections::HashMap<String, String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]

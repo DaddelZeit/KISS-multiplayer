@@ -35,7 +35,7 @@ local function send()
     local new_data = active_controllers[i]:get()
 
     if is_diff(prev_controller_data[i], new_data) then
-      diffs[i] = new_data
+      diffs[tostring(i)] = serialize(new_data)
       diff_count = diff_count + 1
       prev_controller_data[i] = new_data
     end
@@ -45,7 +45,7 @@ local function send()
     obj:queueGameEngineLua(string.format(
       "network.send_data(%q, true)",
       jsonEncode({
-        ControllersUndefinedUpdate = {objectId, {diff = serialize(diffs)}}
+        ControllersUndefinedUpdate = {objectId, {diff = diffs}}
       })))
   end
 end
@@ -53,10 +53,10 @@ end
 local full_controller_data = {}
 local function apply_diff(buffer_data)
   local diff = string_buffer.decode(buffer_data)
-  local data = deserialize(diff)
-  for k,v in pairs(data) do
-    tableMergeRecursive(full_controller_data[k], v)
-    active_controllers[k]:set(full_controller_data[k])
+  for k, v in pairs(diff) do
+    local i = tonumber(k)
+    tableMergeRecursive(full_controller_data[i], deserialize(v))
+    active_controllers[i]:set(full_controller_data[i])
   end
 end
 

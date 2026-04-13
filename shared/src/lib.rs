@@ -93,7 +93,7 @@ pub enum ClientCommand {
     CouplerAttached(CouplerAttached),
     CouplerDetached(CouplerDetached),
     ElectricsUndefinedUpdate(u32, ElectricsUndefined),
-    ControllersUndefinedUpdate(u32, SerializedUndefined),
+    ControllersUndefinedUpdate(u32, ControllerUndefined),
     VoiceChatPacket(Vec<u8>),
     // Only used by bridge
     SpatialUpdate([f32; 3], [f32; 3]),
@@ -112,7 +112,7 @@ pub enum ClientCommand {
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ServerCommand {
     VehicleUpdate(VehicleUpdate),
-    VehicleSpawn(VehicleData),
+    VehicleSpawn(VehicleData, Option<ElectricsUndefined>, Option<ControllerUndefined>),
     RemoveVehicle(u32),
     ResetVehicle(VehicleReset),
     Chat(String, Option<u32>),
@@ -125,7 +125,7 @@ pub enum ServerCommand {
     CouplerAttached(CouplerAttached),
     CouplerDetached(CouplerDetached),
     ElectricsUndefinedUpdate(u32, ElectricsUndefined),
-    ControllersUndefinedUpdate(u32, SerializedUndefined),
+    ControllersUndefinedUpdate(u32, ControllerUndefined),
     ServerInfo(ServerInfo),
     FilePart(String, Vec<u8>, u32, u32, u32),
     VoiceChatPacket(u32, [f32; 3], Vec<u8>),
