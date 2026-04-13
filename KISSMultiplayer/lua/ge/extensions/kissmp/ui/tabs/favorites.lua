@@ -82,13 +82,13 @@ local function remove_server_from_favorites(addr)
 end
 
 local function draw_add_favorite_window()
-  if not kissui.gui.isWindowVisible("Add Favorite") then return end
+  if not kissui.gui.isWindowVisible("Add Favourite") then return end
 
   local display_size = imgui.GetIO().DisplaySize
   imgui.SetNextWindowPos(imgui.ImVec2(display_size.x / 2, display_size.y / 2), imgui.Cond_Always, imgui.ImVec2(0.5, 0.5))
 
-  imgui.SetNextWindowBgAlpha(kissui.window_opacity[0])
-  if imgui.Begin("Add Favorite", kissui.gui.getWindowVisibleBoolPtr("Add Favorite"), bit.bor(imgui.WindowFlags_NoScrollbar ,imgui.WindowFlags_NoResize, imgui.WindowFlags_AlwaysAutoResize)) then
+  imgui.SetNextWindowBgAlpha(kissui.window_opacity)
+  if imgui.Begin("Add Favourite", kissui.gui.getWindowVisibleBoolPtr("Add Favourite"), bit.bor(imgui.WindowFlags_NoScrollbar ,imgui.WindowFlags_NoResize, imgui.WindowFlags_AlwaysAutoResize)) then
     imgui.Text("Name:")
     imgui.SameLine()
     imgui.PushItemWidth(-1)
@@ -114,11 +114,11 @@ local function draw_add_favorite_window()
         add_direct_server_to_favorites(addr, name)
       end
 
-      kissui.gui.hideWindow("Add Favorite")
+      kissui.gui.hideWindow("Add Favourite")
     end
     imgui.SameLine()
     if imgui.Button("Cancel", imgui.ImVec2(button_width, 0)) then
-      kissui.gui.hideWindow("Add Favorite")
+      kissui.gui.hideWindow("Add Favourite")
     end
   end
   imgui.End()
@@ -181,13 +181,13 @@ local function draw()
 
       imgui.PopTextWrapPos()
       if imgui.Button("Connect###connect_button_" .. tostring(favorites_count)) then
-        kissconfig.save_config()
         local player_name = ffi.string(kissui.player_name)
+        kissconfig.set_setting("ui.name", player_name)
         -- if it was added manually (direct IP), trust it (false); otherwise, it's public (true)
         network.connect(addr, player_name, not server.added_manually)
       end
       imgui.SameLine()
-      if imgui.Button("Remove from Favorites###remove_favorite_button_" .. tostring(favorites_count)) then
+      if imgui.Button("Remove from Favourites###remove_favorite_button_" .. tostring(favorites_count)) then
         remove_server_from_favorites(addr)
       end
     end
@@ -195,7 +195,7 @@ local function draw()
 
   imgui.PushTextWrapPos(0)
   if favorites_count == 0 then
-    imgui.Text("Favorites list is empty")
+    imgui.Text("Favourites list is empty")
   end
   imgui.PopTextWrapPos()
 
@@ -210,7 +210,7 @@ local function draw()
   end
   imgui.SameLine()
   if imgui.Button("Add", imgui.ImVec2(button_width, 0)) then
-    kissui.gui.showWindow("Add Favorite")
+    kissui.gui.showWindow("Add Favourite")
   end
 end
 

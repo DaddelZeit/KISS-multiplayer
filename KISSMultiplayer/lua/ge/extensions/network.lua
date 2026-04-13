@@ -17,6 +17,9 @@ local socket = require("socket")
 local messagepack = require("lua/common/libs/Lua-MessagePack/MessagePack")
 local ping_send_time = 0
 
+local public_scripting = false
+local public_mods = false
+
 M.players = {}
 M.socket = socket
 M.base_secret = "None"
@@ -96,6 +99,12 @@ local function disconnect(data)
   end
   kissui.chat.add_message(text)
   M.connection.connected = false
+  
+  if vehiclemanager then
+    vehiclemanager.loading_map = false
+  end
+  kissui.show_download = false
+
   if M.connection.tcp then
     M.connection.tcp:close()
     M.connection.tcp = nil
@@ -103,24 +112,24 @@ local function disconnect(data)
 
   cancel_download()
 
+  -- -- Delete the 3D player models from world memory
+  -- for _, v in pairs(kissplayers.players) do
+  --   if v then v:delete() end
+  -- end
+  -- for _, v in pairs(kissplayers.players_in_cars) do
+  --   if v then v:delete() end
+  -- end
+
   M.players = {}
   kissplayers.players = {}
   kissplayers.player_transforms = {}
   kissplayers.players_in_cars = {}
   kissplayers.player_heads_attachments = {}
   kissrichpresence.update()
-  --vehiclemanager.id_map = {}
-  --vehiclemanager.ownership = {}
-  --vehiclemanager.delay_spawns = false
-  --kissui.force_disable_nametags = false
-  --Lua:requestReload()
+  
   if getMissionFilename() ~= "" then
     returnToMainMenu()
   end
-end
-
-local function handle_disconnected(data)
-  disconnect(data)
 end
 
 local function handle_player_info(player_info)
@@ -139,7 +148,7 @@ local function check_lua(l)
 end
 
 local function handle_lua(data)
-  if M.is_server_public then
+  if M.is_server_public and not public_scripting then
     log("W", "kissmp.network.handle_lua", "Blocked arbitrary GE Lua command from public server.")
     return
   end
@@ -150,7 +159,7 @@ local function handle_lua(data)
 end
 
 local function handle_vehicle_lua(data)
-  if M.is_server_public then
+  if M.is_server_public and not public_scripting then
     log("W", "kissmp.network.handle_vehicle_lua", "Blocked arbitrary vehicle Lua command from public server.")
     return
   end
@@ -180,6 +189,13 @@ local function handle_player_disconnected(data)
   if kissplayers.players_in_cars[id] then
     kissplayers.delete_player_head(id)
   end
+
+  -- Delete the 3D player models from world memory
+  if kissplayers.players[id] then
+    kissplayers.players[id]:delete()
+    kissplayers.players[id] = nil
+  end
+  kissplayers.player_transforms[id] = nil
 end
 
 local function handle_chat(data)
@@ -271,21 +287,29 @@ local function generate_secret(server_identifier)
 end
 
 local function change_map(map)
-  if FS:fileExists(map) or FS:directoryExists(map) then
-    vehiclemanager.loading_map = true
-    freeroam_freeroam.startFreeroam(map)
-  else
-    kissui.chat.add_message("Map file doesn't exist. Check if mod containing map is enabled", kissui.COLOR_RED)
-    disconnect()
-  end
+  -- if FS:fileExists(map) or FS:directoryExists(map) then
+  --   vehiclemanager.loading_map = true
+  --   freeroam_freeroam.startFreeroam(map)
+  -- else
+  --   kissui.chat.add_message("Map file doesn't exist. Check if mod containing map is enabled", kissui.COLOR_RED)
+  --   disconnect()
+  -- end
+  vehiclemanager.loading_map = true
+  freeroam_freeroam.startFreeroam(map)
 end
 
 local function connect(addr, player_name, is_public)
   M.is_server_public = is_public or false
+  public_scripting = kissconfig.get_setting("security.public_scripting")
+  public_mods = kissconfig.get_setting("security.public_mods")
 
   if M.connection.connected then
     disconnect()
+  elseif M.connection.tcp then
+    M.connection.tcp:close()
+    M.connection.tcp = nil
   end
+
   M.players = {}
   M.download_start_time = 0
   M.download_queue = {}
@@ -297,7 +321,7 @@ local function connect(addr, player_name, is_public)
   kissui.chat.add_message("Connecting to "..addr.."...")
   M.connection.tcp = socket.tcp()
   M.connection.tcp:settimeout(3.0)
-  local connected, err = M.connection.tcp:connect("127.0.0.1", "7894")
+  M.connection.tcp:connect("127.0.0.1", "7894")
 
   -- Send server address to the bridge
   local addr_lenght = ffi.string(ffi.new("uint32_t[?]", 1, {#addr}), 4)
@@ -320,12 +344,19 @@ local function connect(addr, player_name, is_public)
 
   local len, _, _ = M.connection.tcp:receive(4)
   len = bytesToU32(len)
-
   local received, _, _ = M.connection.tcp:receive(len)
   local server_info = jsonDecode(received).ServerInfo
   if not server_info then
     log("E", "kissmp.network.connect", "Failed to fetch server info. Aborting.")
+    disconnect()
     return
+  else
+    if (server_info.require_scripts and not public_scripting) or (server_info.require_mods and not public_mods) then
+      kissui.chat.add_message("Connection rejected: Missing permissions.", kissui.COLOR_RED)
+      log("E", "kissmp.network.connect", "Missing permissions. Server requirements do not match game settings.")
+      disconnect()
+      return
+    end
   end
   log("I", "kissmp.network.connect", "Server name: "..server_info.name)
   log("I", "kissmp.network.connect", "Player count: "..server_info.player_count)
@@ -381,7 +412,7 @@ local function connect(addr, player_name, is_public)
   end
   if #missing_mods > 0 then
     -- Do not allow public servers to force mod downloads
-    if M.is_server_public then
+    if M.is_server_public and not public_mods then
       kissui.chat.add_message("Connection rejected: Missing mods.", kissui.COLOR_RED)
       disconnect()
       return
@@ -431,8 +462,13 @@ local function onUpdate(dt)
   local max_packets_per_update = 64
 
   while packets_processed < max_packets_per_update do
-    local msg_type = M.connection.tcp:receive(1)
-    if not msg_type then break end
+    local msg_type, err = M.connection.tcp:receive(1)
+    if not msg_type then
+      if err == "closed" then
+        disconnect("Connection lost")
+      end
+      break
+    end
     packets_processed = packets_processed + 1
 
     M.connection.tcp:settimeout(5.0)
@@ -459,7 +495,7 @@ local function onUpdate(dt)
       end
 
     elseif string.byte(msg_type) == 0 then -- Binary data
-      if M.is_server_public then
+      if M.is_server_public and not public_mods then
         kissui.chat.add_message("Connection rejected: Server tried to download a mod.", kissui.COLOR_RED)
         disconnect()
         return
@@ -569,6 +605,10 @@ local function onUpdate(dt)
   end
 end
 
+local function onKissMPSettingsChanged(config)
+  M.base_secret = config["security.base_secret_v2"]
+end
+
 local function get_client_id()
   return M.connection.client_id
 end
@@ -580,5 +620,6 @@ M.cancel_download = cancel_download
 M.send_data = send_data
 M.onUpdate = onUpdate
 M.onExtensionLoaded = onExtensionLoaded
+M.onKissMPSettingsChanged = onKissMPSettingsChanged
 
 return M

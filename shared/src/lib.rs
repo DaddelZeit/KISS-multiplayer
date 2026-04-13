@@ -23,7 +23,8 @@ pub const VERSION: (u32, u32) = (
     parse_env_u32(env!("CARGO_PKG_VERSION_MAJOR")),
     parse_env_u32(env!("CARGO_PKG_VERSION_MINOR"))
 );
-pub const VERSION_STR: &str = env!("CARGO_PKG_VERSION");
+
+pub const MASTER_SERVER: &str = "kissmp.thehellbox.ru";
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ClientInfoPrivate {
@@ -52,6 +53,8 @@ pub struct ServerInfo {
     pub max_vehicles_per_client: u8,
     pub mods: Vec<(String, u32)>,
     pub server_identifier: String,
+    pub require_scripts: bool,
+    pub require_mods: bool
 }
 
 impl ClientInfoPublic {
@@ -141,7 +144,13 @@ pub fn init_logging()
     let filter = match std::env::var("RUST_LOG")
     {
       Ok(f) => f,
-      Err(_e) => "info".to_owned()
+      Err(_e) => {
+        if cfg!(debug_assertions) {
+            "debug" // show debug! logs in debug build
+        } else {
+            "info,discord_rpc_client=off" // no debug logs in '--release'
+        }
+      }.to_owned()
     };
 
 

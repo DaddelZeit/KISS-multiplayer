@@ -1,5 +1,4 @@
-#[recursion_limit = "1024"]
-use ipnetwork::Ipv4Network;
+#![recursion_limit = "1024"]
 use quinn::IdleTimeout;
 use shared::vehicle;
 
@@ -88,6 +87,8 @@ pub struct Server {
     public_address: Option<String>,
     mods: Option<Vec<String>>,
     tick: u64,
+    require_scripts: bool,
+    require_mods: bool,
 }
 
 impl Server {
@@ -118,8 +119,12 @@ impl Server {
             server_identifier: config.server_identifier,
             upnp_enabled: config.upnp_enabled,
             public_address: None,
-            mods: config.mods,
+            mods: config.mods.clone(),
             tick: 0,
+            require_scripts: config.require_scripts,
+            require_mods: crate::list_mods(config.mods)
+                .map(|(m, _)| !m.is_empty())
+                .unwrap_or(false),
         }
     }
     pub async fn run(
@@ -136,7 +141,7 @@ impl Server {
                 self.upnp_port = Some(port);
                 info!("Fetching public IP address...");
                 let socket = UdpSocket::bind(&addr).unwrap();
-                socket.connect("kissmp.thehellbox.ru:3691");
+                let _ = socket.connect(format!("{}:3691", shared::MASTER_SERVER));
                 let mut i = 0;
                 while i < 5 {
                     let _ = socket.send(b"hi");
@@ -176,19 +181,39 @@ impl Server {
 
         let mut transport = quinn::TransportConfig::default();
         transport.max_idle_timeout(Some(
-            IdleTimeout::try_from(std::time::Duration::from_secs(60)).unwrap(),
+            IdleTimeout::try_from(std::time::Duration::from_secs(10)).unwrap(),
         ));
-        transport.keep_alive_interval(Some(std::time::Duration::from_secs(2)));
+
+        // settings for VPN like Hamachi
+        transport.initial_mtu(1200);
+        transport.mtu_discovery_config(None);
+        // increase uni stream buffer limits
+        transport.max_concurrent_uni_streams(2048u32.into());
+        transport.send_window(33_554_432);
+
         server_config.transport = std::sync::Arc::new(transport);
 
-        let (_endpoint, incoming) = quinn::Endpoint::server(server_config, addr).unwrap();
+        let endpoint = quinn::Endpoint::server(server_config, addr).unwrap();
         info!("Server is listening on {}", addr);
 
         let (client_events_tx, client_events_rx) = mpsc::channel(128);
         let mut client_events_rx = ReceiverStream::new(client_events_rx).fuse();
-        let mut incoming = incoming
-            .inspect(|_conn| info!("Client is trying to connect to the server"))
-            .buffer_unordered(16);
+        
+        let (incoming_tx, incoming_rx) = mpsc::channel(16);
+        let endpoint_clone = endpoint.clone();
+        tokio::spawn(async move {
+            while let Some(incoming) = endpoint_clone.accept().await {
+                info!("Client is trying to connect to the server");
+                let incoming_tx = incoming_tx.clone();
+                tokio::spawn(async move {
+                    match incoming.await {
+                        Ok(conn) => { let _ = incoming_tx.send(conn).await; }
+                        Err(e) => warn!("Failed to accept incoming connection: {}", e),
+                    }
+                });
+            }
+        });
+        let mut incoming = ReceiverStream::new(incoming_rx).fuse();
 
         let stdin = tokio::io::stdin();
         let reader =
@@ -201,7 +226,7 @@ impl Server {
         }
         info!("Server is running!");
         if let Some(setup_result) = setup_result {
-            setup_result.send(ServerSetupResult {
+            let _ = setup_result.send(ServerSetupResult {
                 addr: addr.to_string(),
                 port: self.port,
                 is_upnp: self.upnp_port.is_some(),
@@ -217,13 +242,9 @@ impl Server {
                     self.send_players_info().await;
                 }
                 conn = incoming.select_next_some() => {
-                    if let Ok(conn) = conn {
-                        info!("New connection attempt from {:?}", conn.connection.remote_address());
-                        if let Err(e) = self.on_connect(conn, client_events_tx.clone()).await {
-                            warn!("Client has failed to connect to the server: {}", e);
-                        }
-                    } else {
-                        warn!("Failed to accept incoming connection: {:?}", conn);
+                    info!("New connection attempt from {:?}", conn.remote_address());
+                    if let Err(e) = self.on_connect(conn, client_events_tx.clone()).await {
+                        warn!("Client has failed to connect to the server: {}", e);
                     }
                 },
                 stdin_input = reader.next() => {
@@ -256,7 +277,7 @@ impl Server {
         }
     }
     async fn send_server_info(&self) -> anyhow::Result<()> {
-        if (!self.show_in_list) {
+        if !self.show_in_list {
             return Ok(());
         }
         let server_info = serde_json::json!({
@@ -266,14 +287,16 @@ impl Server {
             "description": self.description.clone(),
             "map": self.map.clone(),
             "port": self.port,
-            "version": shared::VERSION
+            "version": shared::VERSION,
+            "require_scripts": self.require_scripts,
+            "require_mods": self.require_mods,
         })
         .to_string();
 
         let client = self.reqwest_client.clone();
         tokio::spawn(async move {
             let _ = client
-                .post("http://kissmp.thehellbox.ru:3692")
+                .post(format!("http://{}:3692", shared::MASTER_SERVER))
                 .body(server_info)
                 .send()
                 .await;
@@ -284,80 +307,54 @@ impl Server {
 
     async fn on_connect(
         &mut self,
-        mut new_connection: quinn::NewConnection,
+        connection: quinn::Connection,
         client_events_tx: mpsc::Sender<(u32, IncomingEvent)>,
     ) -> anyhow::Result<()> {
-        info!("Connection handshake starting...");
+        debug!("Connection handshake starting...");
+        debug!("Connection stats: {:?}", connection.stats());
 
-        info!("Connection stats: {:?}", new_connection.connection.stats());
-
-        // timeout for receiving client info
-        let client_info = tokio::time::timeout(
-            std::time::Duration::from_secs(5),
-            async {
-                let mut stream = new_connection.uni_streams.try_next().await?;
-                if let Some(stream) = &mut stream {
-                    info!("Receiving client info stream...");
-                    let mut buf = [0; 4];
-                    stream.read_exact(&mut buf[0..4]).await?;
-                    let len = u32::from_le_bytes(buf).min(16384) as usize;
-                    info!("Expected client info length: {}", len);
-                    let mut buf: Vec<u8> = vec![0; len];
-                    stream.read_exact(&mut buf).await?;
-                    info!("Received client info bytes: {} bytes", buf.len());
-                    Ok(buf)
-                } else {
-                    Err(anyhow::Error::msg("No client info stream received"))
-                }
-            }
-        ).await;
-
-        let connection = new_connection.connection.clone();
         if self.connections.len() >= self.max_players.into() {
             connection.close(0u32.into(), b"Server is full");
             return Err(anyhow::Error::msg("Server is full"));
         }
-        // Should be strong enough for our targets. TODO: Check for collisions anyway
+        // Collision probability is negligible for random u32 ID at intended player counts
         let id = rand::random::<u32>();
 
         info!("Client connected with ID: {}", id);
 
         let (ordered_tx, ordered_rx) = mpsc::channel(128);
         let (unreliable_tx, unreliable_rx) = mpsc::channel(128);
+        
         async fn receive_client_data(
-            new_connection: &mut quinn::NewConnection,
+            connection: &quinn::Connection,
         ) -> anyhow::Result<ClientInfoPrivate> {
-            let mut stream = new_connection.uni_streams.try_next().await?;
-            if let Some(stream) = &mut stream {
-                info!("Attempting to receive client info...");
-                let mut buf = [0; 4];
-                stream.read_exact(&mut buf[0..4]).await?;
-                let len = u32::from_le_bytes(buf).min(16384) as usize;
-                info!("Client info length: {}", len);
-                let mut buf: Vec<u8> = vec![0; len];
-                stream.read_exact(&mut buf).await?;
-                info!("Received raw client info data");
-                let info: shared::ClientCommand =
-                    bincode::deserialize::<shared::ClientCommand>(&buf)?;
-                info!("Deserialized client info");
-                info!("[DEBUG] Received client command: {:?}", info);
-                if let shared::ClientCommand::ClientInfo(info) = info {
-                    info!("Got client info: {:?}", info);
-                    Ok(info)
-                } else {
-                    Err(anyhow::Error::msg("Failed to fetch client info - wrong command type"))
-                }
+            let mut stream = connection.accept_uni().await?;
+            debug!("Attempting to receive client info...");
+            let mut buf = [0; 4];
+            stream.read_exact(&mut buf[0..4]).await?;
+            let len = u32::from_le_bytes(buf).min(16384) as usize;
+            debug!("Expected client info length: {}", len);
+            let mut buf: Vec<u8> = vec![0; len];
+            stream.read_exact(&mut buf).await?;
+            debug!("Received raw client info data");
+            let info: shared::ClientCommand =
+                bincode::deserialize::<shared::ClientCommand>(&buf)?;
+            debug!("Deserialized client info");
+            debug!("Received client command: {:?}", info);
+            if let shared::ClientCommand::ClientInfo(info) = info {
+                debug!("Client '{}' authenticated (version {:?})", info.name, info.client_version);
+                Ok(info)
             } else {
-                Err(anyhow::Error::msg("Failed to fetch client info - no stream"))
+                Err(anyhow::Error::msg("Failed to fetch client info - wrong command type"))
             }
         }
 
         let connection_clone = connection.clone();
         // Receiver
         tokio::spawn(async move {
-            info!("[CONNECT_TASK] Starting connection task for {}", id);
+            debug!("[CONNECT_TASK] Starting connection task for {}", id);
             let client_info = {
-                if let Ok(client_data) = receive_client_data(&mut new_connection).await {
+                if let Ok(client_data) = receive_client_data(&connection_clone).await {
                     client_data
                 } else {
                     connection_clone.close(
@@ -397,19 +394,16 @@ impl Server {
                 .send((id, IncomingEvent::ClientConnected(client_connection)))
                 .await
                 .unwrap();
-            info!("[CONNECT_TASK] Starting drive_receive for {}", id);
-            if let Err(_e) = Self::drive_receive(
+            debug!("[CONNECT_TASK] Starting drive_receive for {}", id);
+            let _ = Self::drive_receive(
                 id,
-                new_connection.uni_streams,
-                new_connection.datagrams,
+                connection_clone.clone(),
                 client_events_tx.clone(),
             )
-            .await
-            {
-                let _ = client_events_tx
-                    .send((id, IncomingEvent::ConnectionLost))
-                    .await;
-            }
+            .await;
+            let _ = client_events_tx
+                .send((id, IncomingEvent::ConnectionLost))
+                .await;
         });
 
         let server_info =
@@ -422,6 +416,8 @@ impl Server {
                 max_vehicles_per_client: self.max_vehicles_per_client,
                 mods: list_mods(self.mods.clone()).unwrap().0,
                 server_identifier: self.server_identifier.clone(),
+                require_scripts: self.require_scripts,
+                require_mods: self.require_mods,
             }))
             .unwrap();
         // Sender
@@ -433,17 +429,20 @@ impl Server {
                     return;
                 }
             };
-            info!("[DEBUG] Sender task started for {}", id);
+            debug!("Sender task started for {}", id);
             if let Err(e) = send(&mut stream, &server_info).await {
                 error!("Failed to send server info: {}", e);
                 return;
             }
-            info!("[DEBUG] Server info sent to {}", id);
-            // debug!("Sent server info to client");
+            debug!("Server info sent to {}", id);
 
             // Start driving connection
             if let Err(e) = Self::drive_send(connection, ordered_rx, unreliable_rx).await {
-                error!("Connection drive_send error: {}", e);
+                if e.to_string() != "Disconnected" {
+                    error!("Connection drive_send error: {}", e);
+                } else {
+                    debug!("Client {} send loop ended", id);
+                }
             }
         });
         Ok(())
@@ -461,7 +460,7 @@ impl Server {
                 command = ordered.select_next_some() => {
                     let connection = connection.clone();
                     tokio::spawn(async move {
-                        // Kinda ugly and hacky tbh
+                        // File transfers are spawned separately to avoid blocking the send loop
                         match command {
                             ServerCommand::TransferFile(file) => {
                                 //println!("Transfer");
@@ -490,55 +489,35 @@ impl Server {
 
     async fn drive_receive(
         id: u32,
-        streams: quinn::IncomingUniStreams,
-        datagrams: quinn::Datagrams,
+        connection: quinn::Connection,
         mut client_events_tx: mpsc::Sender<(u32, IncomingEvent)>,
     ) -> anyhow::Result<()> {
-        info!("[DEBUG] Starting drive_receive for {}", id);
-        let mut cmds = streams
-            .map(|stream| async {
-                let mut stream = stream?;
-                let mut buf = [0; 4];
-                stream.read_exact(&mut buf[0..4]).await?;
-                let len = u32::from_le_bytes(buf).min(65536) as usize;
-                let mut buf: Vec<u8> = vec![0; len];
-                stream.read_exact(&mut buf).await?;
-                Ok::<_, Error>(buf)
-            })
-            .buffered(256)
-            .fuse();
-
-        let mut datagrams = datagrams
-            .map(|data| async {
-                let data: Vec<u8> = data?.to_vec();
-                Ok::<_, Error>(data)
-            })
-            .buffered(256)
-            .fuse();
-
+        debug!("Starting drive_receive for {}", id);
         loop {
-            let data = select! {
-                data = cmds.try_next() => {
-                    if let Some(data) = data? {
-                        data
-                    }
-                    else{
-                       return Err(anyhow::Error::msg("Disconnected"))
+            tokio::select! {
+                stream_res = connection.accept_uni() => {
+                    if let Ok(mut stream) = stream_res {
+                        let mut tx_clone = client_events_tx.clone();
+                        tokio::spawn(async move {
+                            let mut buf = [0; 4];
+                            if stream.read_exact(&mut buf[0..4]).await.is_ok() {
+                                let len = u32::from_le_bytes(buf).min(65536) as usize;
+                                let mut data: Vec<u8> = vec![0; len];
+                                if stream.read_exact(&mut data).await.is_ok() {
+                                    let _ = Self::handle_incoming_data(id, data, &mut tx_clone).await;
+                                }
+                            }
+                        });
+                    } else {
+                        break Ok(());
                     }
                 }
-                data = datagrams.try_next() => {
-                    if let Some(data) = data? {
-                        data
-                    }
-                    else{
-                        return Err(anyhow::Error::msg("Disconnected"))
-                    }
+                datagram_res = connection.read_datagram() => {
+                    let data = datagram_res?;
+                    let _ = Self::handle_incoming_data(id, data.to_vec(), &mut client_events_tx).await;
                 }
-                complete => break
-            };
-            let _ = Self::handle_incoming_data(id, data, &mut client_events_tx).await;
+            }
         }
-        Err(anyhow::Error::msg("Disconnected"))
     }
 
     async fn tick(&mut self) {
@@ -599,7 +578,7 @@ fn generate_certificate() -> (rustls::Certificate, rustls::PrivateKey) {
 async fn send(stream: &mut quinn::SendStream, message: &[u8]) -> anyhow::Result<()> {
     stream.write_all(&(message.len() as u32).to_le_bytes()).await?;
     stream.write_all(message).await?;
-    stream.finish().await?;
+    let _ = stream.finish().await;
     Ok(())
 }
 
@@ -631,7 +610,7 @@ pub fn list_mods(
     let mut result = vec![];
     let mut raw = vec![];
     for path in paths {
-        let mut path = path.clone();
+        let path = path.clone();
         if path.is_dir() {
             continue;
         }
@@ -668,7 +647,7 @@ pub fn list_mods(
                 };
                 match r {
                     Ok(p) => {
-                        if (!p.exists()) {
+                        if !p.exists() {
                             error!("Mod file {:?} not found", p);
                             continue;
                         }
@@ -734,7 +713,7 @@ pub fn upnp_pf(port: u16) -> Option<u16> {
             for interface in ifs {
                 for iface_addr in interface.addresses.iter() {
                     match iface_addr.mask {
-                        Some(SocketAddr::V4(ipv4_mask)) => {
+                        Some(SocketAddr::V4(_ipv4_mask)) => {
                             let ipv4_addr = match iface_addr.address {
                                 Some(SocketAddr::V4(ipv4_addr)) => ipv4_addr,
                                 _ => continue,
@@ -775,8 +754,8 @@ pub fn upnp_pf(port: u16) -> Option<u16> {
                     Ok(()) => return Some(port),
                     Err(e) => match e {
                         igd::AddPortError::PortInUse => {
-                            gateway.remove_port(igd::PortMappingProtocol::UDP, port);
-                            gateway.add_port(
+                            let _ = gateway.remove_port(igd::PortMappingProtocol::UDP, port);
+                            let _ = gateway.add_port(
                                 igd::PortMappingProtocol::UDP,
                                 port,
                                 SocketAddr::V4(ip),
