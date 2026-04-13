@@ -182,11 +182,35 @@ local function send_vehicle_config_inner(id, parts_config_json, buffer_data)
   )
 end
 
+local function electrics_diff_update(data)
+  local id = M.id_map[data[1] or -1]
+  if id and not M.ownership[id] then
+    local vehicle = getObjectByID(id)
+    if not vehicle then return end
+    vehicle:queueLuaCommand(string.format(
+      "kiss_electrics.apply_diff(%q)",
+      string_buffer.encode(data[2].diff)))
+  end
+end
+
+local function controllers_diff_update(data)
+  local id = M.id_map[data[1] or -1]
+  if id and not M.ownership[id] then
+    local vehicle = getObjectByID(id)
+    if not vehicle then return end
+    vehicle:queueLuaCommand(string.format(
+      "kiss_controllers.apply_diff(%q)",
+      string_buffer.encode(data[2].diff)))
+  end
+end
+
 local camera_pos = vec3()
 local transform_pos = vec3()
 local view_distance = nil
 
-local function spawn_vehicle(data)
+local function spawn_vehicle(server_data)
+  local data, electrics, controllers = server_data[1], server_data[2], server_data[3]
+
   local model_info = core_vehicles.getModel(data.name)
   if tableSize(model_info) == 0 then
     log("W", "kissmp.vehiclemanager.spawn_vehicle", "Rejected modded vehicle spawn "..data.name)
@@ -208,11 +232,11 @@ local function spawn_vehicle(data)
 
   if M.loading_map or M.delay_spawns then
     log("D", "kissmp.vehiclemanager.spawn_vehicle", "Buffering vehicle")
-    M.vehicle_buffer[data.server_id] = data
+    M.vehicle_buffer[data.server_id] = server_data
     return
   elseif away and view_distance then
     log("D", "kissmp.vehiclemanager.spawn_vehicle", "Buffering vehicle")
-    M.vehicle_buffer[data.server_id] = data
+    M.vehicle_buffer[data.server_id] = server_data
     return
   end
   if data.owner == network.get_client_id() then
@@ -262,6 +286,13 @@ local function spawn_vehicle(data)
   kisstransform.inactive[spawned:getID()] = false
   --if current_vehicle then be:enterVehicle(0, current_vehicle) end
   spawned:queueLuaCommand("extensions.hook('kissUpdateOwnership', false)")
+  if electrics and controllers then
+    spawned:queueLuaCommand(string.format(
+      [[kiss_electrics.apply_diff(%q)
+        kiss_controllers.apply_diff(%q)]],
+      string_buffer.encode(electrics.diff),
+      string_buffer.encode(controllers.diff)))
+  end
 end
 
 local function onUpdate(dt)
@@ -286,7 +317,7 @@ local function onUpdate(dt)
       local vehicle = getObjectByID(i)
       if vehicle and (not kisstransform.inactive[i]) then
         send_vehicle_update(vehicle)
-        vehicle:queueLuaCommand("kiss_electrics.send()")
+        vehicle:queueLuaCommand("kiss_electrics.send(); kiss_controllers.send()")
       end
     end
   end
@@ -301,12 +332,12 @@ local function onUpdate(dt)
   end
   if not (M.loading_map or M.delay_spawns) then
     local to_remove = {}
-    for k, vehicle in pairs(M.vehicle_buffer) do
+    for k, vehicle_server_data in pairs(M.vehicle_buffer) do
       local t = kisstransform.raw_transforms[k]
       if t then
         transform_pos:set(t.position[1], t.position[2], t.position[3])
         if not (view_distance and transform_pos:squaredDistance(camera_pos) > view_distance) then
-          spawn_vehicle(vehicle)
+          spawn_vehicle(vehicle_server_data)
           table.insert(to_remove, k)
         end
       end
@@ -435,18 +466,6 @@ local function update_vehicle_meta(data)
     extensions.core_vehicle_manager.liveUpdateVehicleColors(id, vehicle, i, table_to_color(ct))
   end
   vehicle:setField('partConfig', '', serialize(vd.config))
-end
-
-local function electrics_diff_update(data)
-  local id = M.id_map[data[1] or -1]
-  if id and not M.ownership[id] then
-    local vehicle = getObjectByID(id)
-    if not vehicle then return end
-    local data = data[2].diff
-    vehicle:queueLuaCommand(string.format(
-      "kiss_electrics.apply_diff(%q)",
-      string_buffer.encode(data)))
-  end
 end
 
 local function attach_coupler_inner(buffer_data)
@@ -655,6 +674,7 @@ M.onVehicleSwitched = onVehicleSwitched
 M.onMissionLoaded = onMissionLoaded
 M.onFreeroamLoaded = onMissionLoaded
 M.electrics_diff_update = electrics_diff_update
+M.controllers_diff_update = controllers_diff_update
 M.attach_coupler = attach_coupler
 M.detach_coupler = detach_coupler
 M.attach_coupler_inner = attach_coupler_inner

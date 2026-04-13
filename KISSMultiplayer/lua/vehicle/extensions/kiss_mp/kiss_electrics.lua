@@ -3,10 +3,6 @@ local M = {}
 local string_buffer = require("string.buffer")
 
 local prev_electrics = {}
-local prev_signal_electrics = {}
-local last_engine_state = true
-local engine_timer = 0
-local ownership = false
 
 local ignored_keys = {
   throttle = true,
@@ -100,32 +96,68 @@ local ignored_keys = {
   dseWarningPulse = true,
   dseRollingOver = true,
   dseRollOverStopped = true,
-  dseCrashStopped = true
+  dseCrashStopped = true,
+  modeRangeBox = true,
+  mode4WD = true,
+  hasESC = true,
+  hasTCS = true,
+  alsActive = true,
+  alsState = true,
+  airIntake = true,
+  ignition = true,
+  running = true,
+  electricalLoadCoef = true,
+  nop = true,
+  boostMax = true,
+  turboBoostMax = true,
+  parkingbrakelight = true,
+  brakeGlow_FR = true,
+  brakeGlow_FL = true,
+  brakeGlow_RR = true,
+  brakeGlow_RL = true,
+  minGearIndex = true,
+  maxGearIndex = true,
+  checkengine = true,
 }
 
-local electrics_handlers = {}
+local electrics_handlers = {
+  lights_state = function(v)
+    electrics.setLightsState(v)
+  end,
+  fog = function(v)
+    electrics.set_fog_lights(v)
+  end,
+  lightbar = function(v)
+    electrics.set_lightbar_signal(v)
+  end,
+  horn = function(v)
+    electrics.horn(v > 0.5)
+  end,
+  ignitionLevel = function(v)
+    if v == 2 and electrics.values.ignitionLevel == 3 then
+      -- this means we're currently starting the engine and it's supposed to run
+      return
+    end
+    electrics.setIgnitionLevel(v)
+  end,
+  engineRunning = function(v)
+    if v == 1 then
+      electrics.setIgnitionLevel(3)
+      controller.mainController.setEngineIgnition(true)
+      controller.mainController.setStarter(true)
+    end
+  end,
+  hasABS = function(v)
+    if v > 0.5 then
+      wheels.setABSBehavior("realistic")
+    else
+      wheels.setABSBehavior("off")
+    end
+  end
+}
 
 local function ignore_key(key)
   ignored_keys[key] = true
-end
-
-local function update_engine_state()
-  if ownership then return end
-  if not electrics.values.engineRunning then return end
-  local engine_running = electrics.values.engineRunning > 0.5
-
-  -- Trigger starter to swap the engine state
-  if engine_running ~= last_engine_state then
-    controller.mainController.setStarter(true)
-  end
-end
-
-local function updateGFX(dt)
-  engine_timer = engine_timer + dt
-  if engine_timer > 5 then
-    update_engine_state()
-    engine_timer = engine_timer - 5
-  end
 end
 
 local function send()
@@ -153,34 +185,20 @@ local function send()
 end
 
 local function apply_diff_signals(diff)
-  local signal_left_input = diff["signal_left_input"] or prev_signal_electrics["signal_left_input"] or 0
-  local signal_right_input = diff["signal_right_input"] or prev_signal_electrics["signal_right_input"] or 0
-  local hazard_enabled = (signal_left_input > 0.5 and signal_right_input > 0.5)
+  local signal_left_input = diff.signal_left_input or electrics.values.signal_left_input or 0
+  local signal_right_input = diff.signal_right_input or electrics.values.signal_right_input or 0
+  local hazard_enabled = (signal_left_input == 1 and signal_right_input == 1)
 
   if hazard_enabled then
-    electrics.set_warn_signal(1)
+    electrics.set_warn_signal(true)
   else
-    electrics.set_warn_signal(0)
-    if signal_left_input > 0.5 then
-      electrics.toggle_left_signal()
-    elseif signal_right_input > 0.5 then
-      electrics.toggle_right_signal()
-    end
+    electrics.set_warn_signal(false)
+    electrics.set_left_signal(signal_left_input == 1)
+    electrics.set_right_signal(signal_right_input == 1)
   end
 
-  prev_signal_electrics["signal_left_input"] = signal_left_input
-  prev_signal_electrics["signal_right_input"] = signal_right_input
-end
-
-local function set_drive_mode(electric_name, drive_mode_controller, desired_value)
-  -- drive modes only allow applying them by the key, we'll cycle all of them and
-  -- if it's not found it'll return to the previous state
-  local currentDriveMode = drive_mode_controller.getCurrentDriveModeKey()
-  while true do
-    drive_mode_controller.nextDriveMode()
-    if math.abs(electrics.values[electric_name] - desired_value) < 0.1 then break end
-    if drive_mode_controller.getCurrentDriveModeKey() == currentDriveMode then break end
-  end
+  diff.signal_left_input = nil
+  diff.signal_right_input = nil
 end
 
 local function update_advanced_coupler_state(coupler_control_controller, value)
@@ -195,12 +213,17 @@ end
 
 local function apply_diff(buffer_data)
   local diff = string_buffer.decode(buffer_data)
-  apply_diff_signals(diff)
-  for k, v in pairs(diff) do
-    electrics.values[k] = v
+  if diff.signal_left_input or diff.signal_right_input then
+    apply_diff_signals(diff)
+  end
 
+  for k, v in pairs(diff) do
     local handler = electrics_handlers[k]
-    if handler then handler(v) end
+    if handler then
+      handler(v)
+    else
+      electrics.values[k] = v
+    end
   end
 end
 
@@ -245,22 +268,27 @@ local function onExtensionLoaded()
       elseif controller_data.fileName == "jato" then
         -- ignore jato fuel
         ignore_key("jatofuel")
-      elseif controller_data.fileName == "beaconSpin" and controller_data.electricsName then
+      elseif controller_data.fileName == "beaconSpin" then
         -- ignore beacon spin
-        ignore_key(controller_data.electricsName)
-      elseif controller_data.fileName == "driveModes" and controller_data.modes then
-        -- register handlers for syncing drive modes
-        for _, vm in pairs(controller_data.modes) do
-          if vm.settings then
-            for _, vs in pairs(vm.settings) do
-              if vs[1] == "electricsValue"  then
-                local electric = vs[2].electricsName
-                local drive_mode_controller = controller.getController(controller_data.name)
-                electrics_handlers[electric] = function(v) set_drive_mode(electric, drive_mode_controller, v) end
-              end
-            end
-          end
-        end
+        ignore_key(controller_data.electricsName or "beaconSpin")
+      elseif controller_data.fileName == "twoStepLaunch" then
+        -- ignore two step state
+        ignore_key(controller_data.electricsName or "twoStep")
+      elseif controller_data.fileName == "nitrousOxideInjection" then
+        -- ignore nitrous
+        ignore_key(controller_data.electricsArmName or "nitrousOxideArm")
+        ignore_key(controller_data.electricsOverrideName or "nitrousOxideOverride")
+      elseif controller_data.fileName == "lineLock" then
+        -- ignore line lock state
+        ignore_key(controller_data.electricsName or "linelock")
+      elseif controller_data.fileName == "braking/compressionBrake" then
+        -- ignore compression brake state
+        local engine_name = controller_data.controlledEngine or "mainEngine"
+
+        ignore_key(controller_data.electricsNameActual or (engine_name .. "_compressionBrake_actual"))
+        ignore_key(controller_data.electricsNameSetting or (engine_name .. "_compressionBrake_setting"))
+        ignore_key(controller_data.electricsNameIsEnabled or (engine_name .. "_compressionBrake_isEnabled"))
+        ignore_key(controller_data.electricsNameLevelIndex or (engine_name .. "_compressionBrake_levelIndex"))
       elseif controller_data.fileName == "advancedCouplerControl" then
         -- register handler for syncing advanced couplers
         local electric = controller_data.name .. "_notAttached"
@@ -271,8 +299,14 @@ local function onExtensionLoaded()
         for _, vn in pairs(tableFromHeaderTable(controller_data.couplerNodes)) do
           local cid1 = beamstate.nodeNameMap[vn.cid1]
           local cid2 = beamstate.nodeNameMap[vn.cid2]
-          kiss_couplers.ignore_coupler_node(cid1)
-          kiss_couplers.ignore_coupler_node(cid2)
+
+          if cid1 then
+            kiss_couplers.ignore_coupler_node(cid1)
+          end
+
+          if cid2 then
+            kiss_couplers.ignore_coupler_node(cid2)
+          end
         end
       end
     end
@@ -280,7 +314,7 @@ local function onExtensionLoaded()
 
   -- Ignore commonly used disp_* electrics used on vehicles with gear displays
   for k,v in pairs(electrics.values) do
-    if type(k) == 'string' and k:sub(1,5) == "disp_" then
+    if type(k) == 'string' and k:startswith("disp_") or k:startswith("auto_") then
       ignored_keys[k] = true
     end
   end
@@ -290,36 +324,36 @@ local function onExtensionLoaded()
     ignored_keys["4ws"] = true
   end
 
-  -- Register handlers
-  electrics_handlers["lights_state"] = function(v) electrics.setLightsState(v) end
-  electrics_handlers["fog"] = function(v) electrics.set_fog_lights(v) end
-  electrics_handlers["lightbar"] = function(v) electrics.set_lightbar_signal(v) end
-  electrics_handlers["horn"] = function(v) electrics.horn(v > 0.5) end
-  electrics_handlers["hasABS"] = function(v)
-    if v > 0.5 then
-      wheels.setABSBehavior("realistic")
-    else
-      wheels.setABSBehavior("off")
+  -- Ignore custom JBeam electrics
+  local electrics_jbeam = v.data.electrics or v.data.components.electrics
+  if electrics_jbeam then
+    local jbeamCustomValues = electrics_jbeam.customValues or {}
+    for _, value in ipairs(tableFromHeaderTable(jbeamCustomValues)) do
+      ignored_keys[value.electricsName] = true
     end
   end
-  electrics_handlers["engineRunning"] = function(v) 
-    last_engine_state = v > 0.5
-    update_engine_state()
-    engine_timer = 0
-  end
-end
 
-local function kissUpdateOwnership(owned)
-  ownership = owned
+  -- Ignore pneumatic states
+  for k,v in ipairs(controller.getControllersByType("pneumatics/airbrakes")) do
+    ignored_keys[v.name.."_pressure_service"] = true
+    ignored_keys[v.name.."_pressure_parking"] = true
+  end
+
+  for k,v in pairs(energyStorage.getStorages()) do
+    if v.type == "pressureTank" then
+      ignored_keys[v.pressureElectricName] = true
+      ignored_keys[v.pressureConsumerElectricName] = true
+      ignored_keys[v.pressureConsumerCoefElectricName] = true
+      ignored_keys[v.pneumaticPTOConsumerPressureElectricsName] = true
+      ignored_keys[v.pneumaticPTOConsumerFlowElectricsName] = true
+    end
+  end
 end
 
 M.send = send
 M.apply_diff = apply_diff
 M.ignore_key = ignore_key
 
-M.kissUpdateOwnership = kissUpdateOwnership
-
 M.onExtensionLoaded = onExtensionLoaded
-M.updateGFX = updateGFX
 
 return M
