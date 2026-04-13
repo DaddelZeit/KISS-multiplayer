@@ -128,7 +128,7 @@ local electrics_handlers = {
     electrics.setIgnitionLevel(v)
   end,
   engineRunning = function(v)
-    if v == 1 and received_data.ignitionLevel >= 2 then
+    if v == 1 and (received_data.ignitionLevel or 2) >= 2 then
       controller.mainController.setEngineIgnition(true)
       controller.mainController.setStarter(true)
     end
