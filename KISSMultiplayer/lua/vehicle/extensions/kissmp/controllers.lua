@@ -43,7 +43,7 @@ local function send()
 
   if diff_count > 0 then
     obj:queueGameEngineLua(string.format(
-      "network.send_data(%q, true)",
+      "kissmp_network.send_data(%q, true)",
       jsonEncode({
         ControllersUndefinedUpdate = {objectId, {diff = diffs}}
       })))
