@@ -223,7 +223,6 @@ impl Server {
                             if let Some(vehicle) = self.vehicles.get_mut(&server_id) {
                                 if let Some(electrics_undefined) = &mut vehicle.electrics_undefined {
                                     for (key, value) in &undefined_update.diff {
-                                        info!("Electrics updated! <{}>", key.clone());
                                         electrics_undefined.diff.insert(key.clone(), *value);
                                     }
                                 }
