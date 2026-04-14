@@ -71,7 +71,7 @@ end
 
 local function spawn_player(data)
   local player = createObject('TSStatic')
-  player:setField("shapeName", 0, "/art/shapes/kissmp_playermodels/base_nb.dae")
+  player:setField("shapeName", 0, "/art/kissmp/playermodels/base_nb.dae")
   player:setField("dynamic", 0, "true")
   player.scale = vec3(1, 1, 1)
   player:registerObject("player"..data.owner)
@@ -136,7 +136,7 @@ end
 
 local function spawn_player_head(id, veh_id)
   local player = createObject('TSStatic')
-  player:setField("shapeName", 0, "/art/shapes/kissmp_playermodels/base_nb_head.dae")
+  player:setField("shapeName", 0, "/art/kissmp/playermodels/base_nb_head.dae")
   player:setField("dynamic", 0, "true")
   player.scale = vec3(1, 1, 1)
   local r, g, b, a = get_player_color(id)
