@@ -110,21 +110,33 @@ local function refresh_server_list(m)
   end
 end
 
+local translate_search = kissmp_ui_translate("ui.main.server_list.name")
+local translate_filters = kissmp_ui_translate("ui.main.server_list.filters")
+local translate_filter_not_full = kissmp_ui_translate("ui.main.server_list.filter_not_full")
+local translate_filter_not_empty = kissmp_ui_translate("ui.main.server_list.filter_not_empty")
+local translate_details_address = kissmp_ui_translate("ui.main.server_details.address", {})
+local translate_details_map = kissmp_ui_translate("ui.main.server_details.map", {})
+local translate_connect = kissmp_ui_translate("ui.main.connect")
+local translate_details_favourite = kissmp_ui_translate("ui.main.server_list.details.favourite")
+local translate_no_bridge = kissmp_ui_translate("ui.main.server_list.no_bridge")
+local translate_empty = kissmp_ui_translate("ui.main.server_list.empty")
+local translate_refresh = kissmp_ui_translate("ui.main.refresh_list")
+
 local function draw_list_search_and_filters(show_online_filter)
-  imgui.Text("Search:")
+  imgui.Text(translate_search.txt)
   imgui.SameLine()
   imgui.PushItemWidth(-1)
   imgui.InputText("##server_search", search_buffer)
   imgui.PopItemWidth()
 
-  imgui.Text("Filters:")
+  imgui.Text(translate_filters.txt)
   imgui.SameLine()
 
-  imgui.Checkbox("Not full", filter_servers_notfull)
+  imgui.Checkbox(translate_filter_not_full.txt, filter_servers_notfull)
 
   imgui.SameLine()
 
-  imgui.Checkbox("Not empty", filter_servers_notempty)
+  imgui.Checkbox(translate_filter_not_empty.txt, filter_servers_notempty)
 
   if show_online_filter then
     imgui.SameLine()
@@ -191,11 +203,13 @@ local function draw(dt)
 
     if imgui.CollapsingHeader1(header) then
       imgui.PushTextWrapPos(0)
-      imgui.Text("Address: "..addr)
-      imgui.Text("Map: "..server.map)
+      translate_details_address:update({addr = addr})
+      translate_details_map:update({map = server.map})
+      imgui.Text(translate_details_address.txt)
+      imgui.Text(translate_details_map.txt)
       draw_server_description(server.description)
       imgui.PopTextWrapPos()
-      if imgui.Button("Connect###connect_button_" .. tostring(server_count)) then
+      if imgui.Button(translate_connect.txt.."###connect_button_" .. tostring(server_count)) then
         local player_name = ffi.string(kissmp_ui.player_name)
         kissmp_config.set_setting("ui.name", player_name)
         kissmp_network.connect(addr, player_name, true)
@@ -204,7 +218,7 @@ local function draw(dt)
       local in_favorites_list = kissmp_ui.tabs.favorites.favorite_servers[addr] ~= nil
       if not in_favorites_list then
         imgui.SameLine()
-        if imgui.Button("Add to Favourites###add_favorite_button_" .. tostring(server_count)) then
+        if imgui.Button(translate_details_favourite.txt.."###add_favorite_button_" .. tostring(server_count)) then
           kissmp_ui.tabs.favorites.add_server_to_favorites(addr, server)
           update_filtered_servers()
         end
@@ -214,15 +228,15 @@ local function draw(dt)
 
   imgui.PushTextWrapPos(0)
   if not kissmp_main.bridge_launched then
-    imgui.Text("The bridge is not running. Please launch the bridge and then click 'Refresh List'.")
+    imgui.Text(translate_no_bridge.txt)
   elseif server_count == 0 then
-    imgui.Text("Server list is empty")
+    imgui.Text(translate_empty.txt)
   end
   imgui.PopTextWrapPos()
 
   imgui.EndChild()
 
-  if imgui.Button("Refresh List", imgui.ImVec2(-1, 0)) then
+  if imgui.Button(translate_refresh.txt, imgui.ImVec2(-1, 0)) then
     refresh_server_list()
     update_filtered_servers()
   end

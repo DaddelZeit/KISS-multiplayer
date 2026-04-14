@@ -1,11 +1,14 @@
 local M = {}
 local imgui = ui_imgui
 
+local translate_connect = kissmp_ui_translate("ui.main.connect")
+local translate_address = kissmp_ui_translate("ui.main.direct_connect.address")
+
 local function draw()
-  imgui.Text("Server address:")
+  imgui.Text(translate_address.txt)
   imgui.InputText("##addr", kissmp_ui.addr)
   imgui.SameLine()
-  if imgui.Button("Connect") then
+  if imgui.Button(translate_connect.txt) then
     local addr = ffi.string(kissmp_ui.addr)
     local player_name = ffi.string(kissmp_ui.player_name)
     kissmp_config.set_setting("ui.name", player_name)

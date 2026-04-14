@@ -99,16 +99,23 @@ local function checkbox(id, checked, allow_click)
   if allow_click then return return_value else return false end
 end
 
+local translate_server_name = kissmp_ui_translate("ui.main.create_server.server_name")
+local translate_max_players = kissmp_ui_translate("ui.main.create_server.max_players")
+local translate_map = kissmp_ui_translate("ui.main.create_server.map")
+local translate_port = kissmp_ui_translate("ui.main.create_server.port")
+local translate_mods = kissmp_ui_translate("ui.main.create_server.mods")
+local translate_create = kissmp_ui_translate("ui.main.create_server.create")
+
 local function draw()
-  imgui.Text("Server name:")
+  imgui.Text(translate_server_name.txt)
   imgui.InputText("##host_server_name", M.server_name)
 
-  imgui.Text("Max players:")
+  imgui.Text(translate_max_players.txt)
   if imgui.InputInt("###host_max_players", M.max_players) then
     M.max_players[0] = math.max(1, math.min(255, M.max_players[0]))
   end
 
-  imgui.Text("Map:")
+  imgui.Text(translate_map.txt)
   if imgui.BeginCombo("###host_map", M.map_name) then
     for k, v in pairs(core_levels.getList()) do
       local title = v.title
@@ -122,13 +129,13 @@ local function draw()
     imgui.EndCombo()
   end
 
-  imgui.Text("Port:")
+  imgui.Text(translate_port.txt)
   if imgui.InputInt("###host_port", M.port) then
     M.port[0] = math.max(0, math.min(65535, M.port[0]))
   end
 
   local mods = FS:findFiles("/mods/", "*.zip", 1000)
-  imgui.Text("Mods:")
+  imgui.Text(translate_mods.txt)
   imgui.BeginChild1("###Mods", imgui.ImVec2(0, -30), true)
   for k, v in pairs(mods) do
     if not kissmp_mods.is_special_mod(v) then
@@ -146,7 +153,7 @@ local function draw()
   end
   imgui.EndChild()
 
-  if imgui.Button("Create Server", imgui.ImVec2(-1, 0)) then
+  if imgui.Button(translate_create.txt, imgui.ImVec2(-1, 0)) then
     host_server()
   end
 end
