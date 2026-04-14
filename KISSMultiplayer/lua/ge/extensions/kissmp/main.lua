@@ -62,7 +62,7 @@ local function onUpdate()
   end
 
   -- load extensions
-  loadJsonMaterialsFile("art/shapes/kissmp_playermodels/main.materials.json")
+  loadJsonMaterialsFile("/art/kissmp/playermodels/main.materials.json")
   for i=1, #extension_load_list do
     extensions.load(extension_load_list[i])
   end
