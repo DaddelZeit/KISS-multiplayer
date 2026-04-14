@@ -1,0 +1,74 @@
+{
+  "ui.main.name": "KissMP {version}",
+  "ui.main.player_name": "Player Name:",
+  "ui.main.connect": "Connect",
+  "ui.main.disconnect": "Disconnect",
+  "ui.main.refresh_list": "Refresh List",
+
+  "ui.main.server_details.address": "Address: {addr}",
+  "ui.main.server_details.map": "Map: {map}",
+
+  "ui.main.server_list.name": "Server List",
+  "ui.main.server_list.search": "Search:",
+  "ui.main.server_list.filters": "Filters:",
+  "ui.main.server_list.filter_not_full": "Not full",
+  "ui.main.server_list.filter_not_empty": "Not empty",
+  "ui.main.server_list.details.favourite": "Add to Favourites",
+
+  "ui.main.server_list.no_bridge": "The bridge is not running. Please launch the bridge and then click 'Refresh List'.",
+  "ui.main.server_list.empty": "Server list is empty",
+
+  "ui.main.direct_connect.name": "Direct Connect",
+  "ui.main.direct_connect.address": "Server address:",
+
+  "ui.main.create_server.name": "Create Server",
+  "ui.main.create_server.server_name": "Server Name:",
+  "ui.main.create_server.max_players": "Max Players:",
+  "ui.main.create_server.map": "Map:",
+  "ui.main.create_server.port": "Port:",
+  "ui.main.create_server.mods": "Mods:",
+  "ui.main.create_server.create": "Create Server",
+
+  "ui.main.favourites.name": "Favourites",
+  "ui.main.favourites.add": "Add",
+  "ui.main.favourites.remove": "Remove from Favourites",
+  "ui.main.favourites.empty": "Favourites list is empty",
+  "ui.main.favourites.user_added_server": "{server_name} [USER]",
+  "ui.main.favourites.offline_server": "{server_name} [OFFLINE]",
+  "ui.main.favourites.online_server": "{server_name} [{player_count}/{max_players}]",
+  "ui.main.favourites.add_window": "Add Favourite",
+  "ui.main.favourites.add_window.name": "Name:",
+  "ui.main.favourites.add_window.address": "Name:",
+  "ui.main.favourites.add_window.cancel": "Cancel",
+
+  "ui.main.settings.name": "Settings",
+  "ui.main.settings.distance_near": "Near",
+  "ui.main.settings.distance_balanced": "Balanced",
+  "ui.main.settings.distance_far": "Far",
+  "ui.main.settings.distance_very_far": "Very Far",
+  "ui.main.settings.distance_custom": "Custom",
+  "ui.main.settings.distance_ext": "{preset_name} ({distance}{unit})",
+
+  "ui.main.settings.separator_ui": "User Interface",
+  "ui.main.settings.ui.scale": "UI scale",
+  "ui.main.settings.ui.window_opacity": "Window opacity",
+
+  "ui.main.settings.separator_player": "Player Visibility",
+  "ui.main.settings.players.show_drivers": "Show players in vehicles",
+  "ui.main.settings.players.show_nametags": "Show name tags",
+  "ui.main.settings.players.nametags.colorful": "Use player colours in name tags",
+  "ui.main.settings.players.nametags.fade": "Fade name tags based on distance",
+  "ui.main.settings.players.nametags.use_z": "Hide name tags behind objects",
+
+  "ui.main.settings.separator_performance": "Performance",
+  "ui.main.settings.perf.view_distance": "Limit vehicle view distance",
+  "ui.main.settings.view_distance_warning": "Experimental:\nThis may introduce a minor lag spike when approaching vehicles.\nIt also prevents you from switching to vehicles currently outside your view distance.",
+
+  "ui.main.settings.separator_danger": "Danger Zone",
+  "ui.main.settings.security.public_scripting": "Allow public servers to run commands",
+  "ui.main.settings.security.public_mods": "Allow public servers to install mods",
+
+  "ui.main.settings.security_confirmation_popup": "Servers can infect your computer.\nServers can steal your data.\nONLY USE PUBLIC SERVERS YOU TRUST.",
+  "ui.main.settings.security_confirmation_instruction_timer": "({time}) Enter your player name to continue:",
+  "ui.main.settings.security_confirmation_instruction": "Enter your player name to continue:"
+}

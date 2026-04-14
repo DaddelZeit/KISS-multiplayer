@@ -81,6 +81,12 @@ local function remove_server_from_favorites(addr)
   save_favorites()
 end
 
+local translate_add_window = kissmp_ui_translate("ui.main.favourites.add_window")
+local translate_add_window_name = kissmp_ui_translate("ui.main.favourites.add_window.name")
+local translate_add_window_address = kissmp_ui_translate("ui.main.favourites.add_window.address")
+local translate_add_cancel = kissmp_ui_translate("ui.main.favourites.add_window.cancel")
+local translate_add = kissmp_ui_translate("ui.main.favourites.add")
+
 local function draw_add_favorite_window()
   if not kissmp_ui.gui.isWindowVisible("Add Favourite") then return end
 
@@ -88,14 +94,14 @@ local function draw_add_favorite_window()
   imgui.SetNextWindowPos(imgui.ImVec2(display_size.x / 2, display_size.y / 2), imgui.Cond_Always, imgui.ImVec2(0.5, 0.5))
 
   imgui.SetNextWindowBgAlpha(kissmp_ui.window_opacity)
-  if imgui.Begin("Add Favourite", kissmp_ui.gui.getWindowVisibleBoolPtr("Add Favourite"), bit.bor(imgui.WindowFlags_NoScrollbar ,imgui.WindowFlags_NoResize, imgui.WindowFlags_AlwaysAutoResize)) then
-    imgui.Text("Name:")
+  if imgui.Begin(translate_add_window.txt, kissmp_ui.gui.getWindowVisibleBoolPtr("Add Favourite"), bit.bor(imgui.WindowFlags_NoScrollbar ,imgui.WindowFlags_NoResize, imgui.WindowFlags_AlwaysAutoResize)) then
+    imgui.Text(translate_add_window_name.txt)
     imgui.SameLine()
     imgui.PushItemWidth(-1)
     imgui.InputText("##favorite_name", add_favorite_name)
     imgui.PopItemWidth()
 
-    imgui.Text("Address:")
+    imgui.Text(translate_add_window_address.txt)
     imgui.SameLine()
     imgui.PushItemWidth(-1)
     imgui.InputText("##favorite_addr", add_favorite_addr)
@@ -106,7 +112,7 @@ local function draw_add_favorite_window()
     local content_width = imgui.GetWindowContentRegionWidth()
     local button_width = content_width * 0.495
 
-    if imgui.Button("Add", imgui.ImVec2(button_width, 0)) then
+    if imgui.Button(translate_add.txt, imgui.ImVec2(button_width, 0)) then
       local addr = ffi.string(add_favorite_addr)
       local name = ffi.string(add_favorite_name)
 
@@ -117,7 +123,7 @@ local function draw_add_favorite_window()
       kissmp_ui.gui.hideWindow("Add Favourite")
     end
     imgui.SameLine()
-    if imgui.Button("Cancel", imgui.ImVec2(button_width, 0)) then
+    if imgui.Button(translate_add_cancel.txt, imgui.ImVec2(button_width, 0)) then
       kissmp_ui.gui.hideWindow("Add Favourite")
     end
   end
@@ -146,6 +152,17 @@ local function draw_server_description(description)
   imgui.Spacing(2)
 end
 
+local translate_connect = kissmp_ui_translate("ui.main.connect")
+local translate_refresh = kissmp_ui_translate("ui.main.refresh_list")
+local translate_empty = kissmp_ui_translate("ui.main.favourites.empty")
+local translate_remove = kissmp_ui_translate("ui.main.favourites.remove")
+local translate_details_address = kissmp_ui_translate("ui.main.server_details.address")
+local translate_details_map = kissmp_ui_translate("ui.main.server_details.map")
+
+local translate_user_added_server = kissmp_ui_translate("ui.main.favourites.user_added_server")
+local translate_offline_server = kissmp_ui_translate("ui.main.favourites.offline_server")
+local translate_online_server = kissmp_ui_translate("ui.main.favourites.online_server")
+
 local function draw()
   --draw_list_search_and_filters(true)
 
@@ -159,20 +176,24 @@ local function draw()
 
     local header = server.name
     if server.added_manually then
-      header = header.." [USER]"
+      translate_user_added_server:update({server_name = header})
+      header = translate_user_added_server.txt
     elseif server_found_in_list then
-      header = header.." ["..server_from_list.player_count.."/"..server_from_list.max_players.."]"
+      translate_online_server:update({server_name = header, player_count = server_from_list.player_count, max_players = server_from_list.max_players})
+      header = translate_online_server.txt
     else
-      header = header.." [OFFLINE]"
+      translate_offline_server:update({server_name = header})
+      header = translate_offline_server.txt
     end
     header = header .. "###server_header_"  .. tostring(favorites_count)
 
     if imgui.CollapsingHeader1(header) then
       imgui.PushTextWrapPos(0)
-      imgui.Text("Address: "..addr)
-
+      translate_details_address:update({addr = addr})
+      imgui.Text(translate_details_address.txt)
       if server_found_in_list then
-        imgui.Text("Map: "..server_from_list.map)
+        translate_details_map:update({map = server_from_list.map})
+        imgui.Text(translate_details_map.txt)
       end
 
       if server.description and server.description:len() > 0 then
@@ -180,14 +201,14 @@ local function draw()
       end
 
       imgui.PopTextWrapPos()
-      if imgui.Button("Connect###connect_button_" .. tostring(favorites_count)) then
+      if imgui.Button(translate_connect.txt.."###connect_button_" .. tostring(favorites_count)) then
         local player_name = ffi.string(kissmp_ui.player_name)
         kissmp_config.set_setting("ui.name", player_name)
         -- if it was added manually (direct IP), trust it (false); otherwise, it's public (true)
         kissmp_network.connect(addr, player_name, not server.added_manually)
       end
       imgui.SameLine()
-      if imgui.Button("Remove from Favourites###remove_favorite_button_" .. tostring(favorites_count)) then
+      if imgui.Button(translate_remove.txt.."###remove_favorite_button_" .. tostring(favorites_count)) then
         remove_server_from_favorites(addr)
       end
     end
@@ -195,7 +216,7 @@ local function draw()
 
   imgui.PushTextWrapPos(0)
   if favorites_count == 0 then
-    imgui.Text("Favourites list is empty")
+    imgui.Text(translate_empty.txt)
   end
   imgui.PopTextWrapPos()
 
@@ -204,12 +225,12 @@ local function draw()
   local content_width = imgui.GetWindowContentRegionWidth()
   local button_width = content_width * 0.495
 
-  if imgui.Button("Refresh List", imgui.ImVec2(button_width, 0)) then
+  if imgui.Button(translate_refresh.txt, imgui.ImVec2(button_width, 0)) then
     kissmp_ui.tabs.server_list.refresh()
     kissmp_ui.tabs.server_list.update_filtered()
   end
   imgui.SameLine()
-  if imgui.Button("Add", imgui.ImVec2(button_width, 0)) then
+  if imgui.Button(translate_add.txt, imgui.ImVec2(button_width, 0)) then
     kissmp_ui.gui.showWindow("Add Favourite")
   end
 end

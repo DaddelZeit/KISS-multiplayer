@@ -7,9 +7,15 @@ local unread_message_count = 0
 local prev_chat_scroll_max = 0
 local message_buffer = imgui.ArrayChar(128)
 
+local translate_name = kissmp_ui_translate("ui.chat.name")
+local translate_name_notifications = kissmp_ui_translate("ui.chat.name_notifications", {})
+local translate_send = kissmp_ui_translate("ui.chat.send")
+local translate_player_list = kissmp_ui_translate("ui.chat.player_list")
+local translate_initial_msg = kissmp_ui_translate("ui.chat.initial_message")
+
 M.focus_chat = false
 M.chat = {
-  {text = "KissMP Chat", has_color = false}
+  {text = translate_initial_msg.txt, has_color = false}
 }
 
 -- Server list update and search
@@ -47,7 +53,7 @@ end
 
 local function draw_player_list()
   imgui.BeginGroup();
-  imgui.Text("Player List:")
+  imgui.Text(translate_player_list.txt)
   imgui.BeginChild1("PlayerList", imgui.ImVec2(0, 0), true)
   if kissmp_network.connection.connected then
     for _, player in spairs(kissmp_players.players, function(t,a,b) return t[b].name:lower() > t[a].name:lower() end) do
@@ -63,9 +69,12 @@ local function draw()
   if not kissmp_ui.gui.isWindowVisible("Chat") then return end
   imgui.PushStyleVar2(imgui.StyleVar_WindowMinSize, imgui.ImVec2(100, 100))
 
-  local window_title = "Chat"
+  local window_title
   if unread_message_count > 0 and should_draw_unread_count then
-    window_title = window_title .. " (" .. tostring(unread_message_count) .. ")"
+    translate_name_notifications:update({count = unread_message_count})
+    window_title = translate_name_notifications.txt
+  else
+    window_title = translate_name.txt
   end
   window_title = window_title .. "###chat"
 
@@ -138,7 +147,7 @@ local function draw()
     end
     imgui.PopItemWidth()
     imgui.SameLine()
-    if imgui.Button("Send", imgui.ImVec2(button_width, -1)) then
+    if imgui.Button(translate_send.txt, imgui.ImVec2(button_width, -1)) then
       send_current_chat_message()
     end
     imgui.PopItemWidth()

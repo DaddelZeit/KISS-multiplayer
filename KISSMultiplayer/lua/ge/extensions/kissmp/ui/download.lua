@@ -1,6 +1,12 @@
 local M = {}
 local imgui = ui_imgui
 
+local translate_name = kissmp_ui_translate("ui.download.name")
+local translate_cancel = kissmp_ui_translate("ui.download.cancel")
+local translate_progress_text = kissmp_ui_translate("ui.download.progress_text", {})
+local translate_speed_text = kissmp_ui_translate("ui.download.speed_text", {})
+local translate_progress_format = kissmp_ui_translate("ui.download.progress_format", {})
+
 local function bytes_to_mb(bytes)
   return (bytes / 1024) / 1024
 end
@@ -24,7 +30,7 @@ local function draw(gui)
   imgui.SetNextWindowBgAlpha(kissmp_ui.window_opacity)
   imgui.PushStyleVar2(imgui.StyleVar_WindowMinSize, imgui.ImVec2(300, 300))
   imgui.SetNextWindowViewport(imgui.GetMainViewport().ID)
-  if imgui.Begin("Downloading Required Mods") then
+  if imgui.Begin(translate_name.txt) then
     imgui.BeginChild1("DownloadsScrolling", imgui.ImVec2(0, -30), true)
 
     -- Draw a list of all the downloads, and finish by drawing a total/max size
@@ -65,7 +71,7 @@ local function draw(gui)
 
     total_size = bytes_to_mb(total_size_bytes)
     downloaded_size = bytes_to_mb(downloaded_size_bytes)
-    local progress_text = tostring(math.floor(downloaded_size)) .. "MB / " .. tostring(math.floor(total_size)) .. "MB"
+    translate_progress_text:update({downloaded_size = math.floor(downloaded_size), total_size = math.floor(total_size)})
 
     local elapsed = 0
     if (kissmp_network.download_start_time or 0) > 0 then
@@ -73,7 +79,7 @@ local function draw(gui)
     end
     if elapsed <= 0 then elapsed = 0.001 end
     local progress_speed = downloaded_size / elapsed
-    local speed_text = tostring(math.floor(progress_speed)) .. "MB/s"
+    translate_speed_text:update({progress_speed = math.floor(progress_speed)})
 
     local eta_text = "--:--"
     if progress_speed > 0 and downloaded_size < total_size then
@@ -83,7 +89,9 @@ local function draw(gui)
 
     content_width = imgui.GetWindowContentRegionWidth()
     split_width = content_width * 0.450
-    progress_text = progress_text .. " (" .. speed_text .. ", ETA " .. eta_text .. ")"
+
+    translate_progress_format:update({progress_text = translate_progress_text.txt, speed_text = translate_speed_text.txt, eta_text = eta_text})
+    local progress_text = translate_progress_format.txt
     local text_size = imgui.CalcTextSize(progress_text)
     local extra_size = split_width - text_size.x
 
@@ -93,7 +101,7 @@ local function draw(gui)
       imgui.Dummy(imgui.ImVec2(extra_size, -1))
     end
     imgui.SameLine()
-    if imgui.Button("Cancel###cancel_download", imgui.ImVec2(split_width, -1)) then
+    if imgui.Button(translate_cancel.txt.."###cancel_download", imgui.ImVec2(split_width, -1)) then
       kissmp_ui.show_download = false
       kissmp_network.disconnect()
     end

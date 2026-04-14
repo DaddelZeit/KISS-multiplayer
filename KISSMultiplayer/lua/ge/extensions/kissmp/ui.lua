@@ -1,16 +1,16 @@
 local M = {}
 
-local main_window = require("kissmp/ui/main")
-M.chat = require("kissmp/ui/chat")
-M.download_window = require("kissmp/ui/download")
+local main_window = rerequire("kissmp/ui/main")
+M.chat = rerequire("kissmp/ui/chat")
+M.download_window = rerequire("kissmp/ui/download")
 local names = require("kissmp/ui/names")
 
 M.tabs = {
-  server_list = require("kissmp/ui/tabs/server_list"),
-  favorites = require("kissmp/ui/tabs/favorites"),
-  settings = require("kissmp/ui/tabs/settings"),
-  direct_connect = require("kissmp/ui/tabs/direct_connect"),
-  create_server = require("kissmp/ui/tabs/create_server"),
+  server_list = rerequire("kissmp/ui/tabs/server_list"),
+  favorites = rerequire("kissmp/ui/tabs/favorites"),
+  settings = rerequire("kissmp/ui/tabs/settings"),
+  direct_connect = rerequire("kissmp/ui/tabs/direct_connect"),
+  create_server = rerequire("kissmp/ui/tabs/create_server"),
 }
 
 M.dependencies = {"ui_imgui"}
@@ -87,6 +87,15 @@ local function change_scale(new_uiscale)
   imgui.ImGuiIO_FontGlobalScale(io, imgui.uiscale[0])
 end
 
+local function push_font_case(typ)
+  local fontname = kissmp_ui_translate.font_index[typ]
+  if fontname then
+    imgui.PushFont3(fontname)
+    return true
+  end
+  return false
+end
+
 local function onUpdate(dt)
   if getMissionFilename() ~= "" and not connected then
     return
@@ -94,7 +103,10 @@ local function onUpdate(dt)
 
   local prev_ui_scale = imgui.uiscale[0]
   change_scale(uiscale)
-  imgui.PushFont3("segoeui_regular") -- update font size
+  -- update font size, ensure correct font for language
+  if not push_font_case("regular") then
+    imgui.PushFont3("segoeui_regular")
+  end
 
   main_window.draw(dt)
   M.chat.draw()
@@ -151,5 +163,7 @@ M.draw_download = M.download_window.draw
 M.show_ui = show_ui
 M.hide_ui = hide_ui
 M.toggle_ui = toggle_ui
+
+M.push_font_case = push_font_case
 
 return M

@@ -1,0 +1,8 @@
+{
+  "ui.download.name": "Downloading Required Mods",
+  "ui.download.cancel": "Cancel",
+
+  "ui.download.progress_text": "{downloaded_size} MB / {total_size} MB",
+  "ui.download.speed_text": "{progress_speed} MB/s",
+  "ui.download.progress_format": "{progress_text} ({speed_text}, ETA {eta_text})"
+}
