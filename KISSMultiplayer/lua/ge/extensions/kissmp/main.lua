@@ -18,6 +18,7 @@ local extension_load_list = {
   "kissmp_config",
 
   -- ui goes last
+  "kissmp_ui_translate",
   "kissmp_ui",
 }
 
