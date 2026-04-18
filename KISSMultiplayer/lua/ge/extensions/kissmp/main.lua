@@ -1,7 +1,7 @@
 local M = {}
 
 local http = require("socket.http")
-http.TIMEOUT = 0.5
+http.TIMEOUT = 0.05
 
 local first_update = false
 
