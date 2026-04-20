@@ -286,8 +286,8 @@ local function spawn_vehicle(server_data)
   spawned:queueLuaCommand("extensions.hook('kissUpdateOwnership', false)")
   if electrics and controllers then
     spawned:queueLuaCommand(string.format(
-      [[kiss_electrics.apply_diff(%q)
-        kiss_controllers.apply_diff(%q)]],
+      [[kissmp_electrics.apply_diff(%q);
+        kissmp_controllers.apply_diff(%q)]],
       string_buffer.encode(electrics.diff),
       string_buffer.encode(controllers.diff)))
   end
