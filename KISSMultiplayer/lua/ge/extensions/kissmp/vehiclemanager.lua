@@ -9,7 +9,6 @@ local colors_buffer = {}
 local plates_buffer = {}
 local first_vehicle = true
 
-M.loading_map = false
 M.id_map = {}
 M.server_ids = {}
 M.ownership = {}
@@ -229,7 +228,7 @@ local function spawn_vehicle(server_data)
     end
   end
 
-  if M.loading_map or M.delay_spawns then
+  if kissmp_levelmanager.loading_map or M.delay_spawns then
     log("D", "kissmp_vehiclemanager.spawn_vehicle", "Buffering vehicle")
     M.vehicle_buffer[data.server_id] = server_data
     return
@@ -295,11 +294,8 @@ local function spawn_vehicle(server_data)
 end
 
 local function onUpdate(dt)
-  if not kissmp_network.connection.connected then return end
   camera_pos:set(core_camera.getPositionXYZ())
-  if (getMissionFilename():lower() ~= kissmp_network.connection.server_info.map:lower()) and (getMissionPath():lower() ~= kissmp_network.connection.server_info.map:lower()) and not M.loading_map then
-    kissmp_network.disconnect()
-  end
+
   -- Track color and plate changes
   meta_timer = meta_timer + dt
   if meta_timer >= 1 then
@@ -329,7 +325,7 @@ local function onUpdate(dt)
       end
     end
   end
-  if not (M.loading_map or M.delay_spawns) then
+  if not (kissmp_levelmanager.loading_map or M.delay_spawns) then
     local to_remove = {}
     for k, vehicle_server_data in pairs(M.vehicle_buffer) do
       local t = kissmp_transform.raw_transforms[k]
@@ -571,7 +567,6 @@ local function reset_in_place(data)
 end
 
 local function onVehicleSpawned(id)
-  if not kissmp_network.connection.connected then return end
   local vehicle = getObjectByID(id)
   tempVec1:set(vehicle:getPositionXYZ())
   if first_vehicle then
@@ -593,7 +588,6 @@ local function onVehicleSpawned(id)
 end
 
 local function onVehicleDestroyed(id)
-  if not kissmp_network.connection.connected then return end
   if M.ownership[id] then
     M.id_map[M.ownership[id]] = nil
     M.ownership[id] = nil
@@ -608,7 +602,6 @@ local function onVehicleDestroyed(id)
 end
 
 local function onVehicleResetted(id)
-  if not kissmp_network.connection.connected then return end
   if M.ownership[id] then
     local vehicle = getObjectByID(id)
     local data = { vehicle_id = id, position = {vehicle:getPositionXYZ()}, rotation = vehicle:getRefNodeRotation():toTable()}
@@ -638,14 +631,6 @@ local function onVehicleSwitched(_id, new_id)
   end
 end
 
-local function onMissionLoaded(mission)
-  if not kissmp_network.connection.connected then return end
-  M.id_map = {}
-  M.ownership = {}
-  M.loading_map = false
-  first_vehicle = true
-end
-
 local function onKissMPSettingsChanged(config)
   view_distance = config["perf.enable_view_distance"] and config["perf.view_distance"] * config["perf.view_distance"] or nil
 end
@@ -667,8 +652,6 @@ M.onVehicleDestroyed = onVehicleDestroyed
 M.onVehicleResetted = onVehicleResetted
 M.onVehicleSpawned = onVehicleSpawned
 M.onVehicleSwitched = onVehicleSwitched
-M.onMissionLoaded = onMissionLoaded
-M.onFreeroamLoaded = onMissionLoaded
 M.electrics_diff_update = electrics_diff_update
 M.controllers_diff_update = controllers_diff_update
 M.attach_coupler = attach_coupler

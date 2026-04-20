@@ -92,6 +92,23 @@ for name, file_handle in pairs(M.downloads) do
   M.download_queue = {}
 end
 
+local function unset_runtime_message_handlers() -- these are hardcoded for security reasons
+  message_handlers.VehicleUpdate = nil
+  message_handlers.VehicleSpawn = nil
+  message_handlers.RemoveVehicle = nil
+  message_handlers.ResetVehicle = nil
+  message_handlers.PlayerInfoUpdate = nil
+  message_handlers.VehicleMetaUpdate = nil
+  message_handlers.PlayerDisconnected = nil
+  message_handlers.CouplerAttached = nil
+  message_handlers.CouplerDetached = nil
+  message_handlers.ElectricsUndefinedUpdate = nil
+  message_handlers.ControllersUndefinedUpdate = nil
+  message_handlers.VehicleSetPosition = nil
+  message_handlers.VehicleSetPositionRotation = nil
+  message_handlers.VehicleResetInPlace = nil
+end
+
 local function disconnect(data)
   local text = "Disconnected!"
   if data then
@@ -100,9 +117,6 @@ local function disconnect(data)
   kissmp_ui.chat.add_message(text)
   M.connection.connected = false
 
-  if kissmp_vehiclemanager then
-    kissmp_vehiclemanager.loading_map = false
-  end
   kissmp_ui.show_download = false
 
   if M.connection.tcp then
@@ -111,15 +125,10 @@ local function disconnect(data)
   end
 
   cancel_download()
-
-  kissmp_players.players = {}
-  kissmp_players.player_bodies = {}
-  kissmp_players.player_transforms = {}
-  kissmp_players.player_heads_in_cars = {}
-  kissmp_players.player_heads_attachments = {}
   kissmp_richpresence.clear()
 
   extensions.hook("onKissMPDisconnected", data)
+  unset_runtime_message_handlers()
   kissmp_main.unload_connected_extensions()
 end
 
@@ -175,22 +184,24 @@ local function handle_chat(data)
 end
 
 local function onKissMPLoaded()
+  message_handlers.Chat = handle_chat
+  message_handlers.SendLua = handle_lua
+  message_handlers.Pong = handle_pong
+  message_handlers.VehicleLuaCommand = handle_vehicle_lua
+end
+
+local function set_runtime_message_handlers() -- these are hardcoded for security reasons
   message_handlers.VehicleUpdate = kissmp_vehiclemanager.update_vehicle
   message_handlers.VehicleSpawn = kissmp_vehiclemanager.spawn_vehicle
   message_handlers.RemoveVehicle = kissmp_vehiclemanager.remove_vehicle
   message_handlers.ResetVehicle = kissmp_vehiclemanager.reset_vehicle
-  message_handlers.Chat = handle_chat
-  message_handlers.SendLua = handle_lua
   message_handlers.PlayerInfoUpdate = kissmp_players.player_info_update
   message_handlers.VehicleMetaUpdate = kissmp_vehiclemanager.update_vehicle_meta
-  message_handlers.Pong = handle_pong
   message_handlers.PlayerDisconnected = kissmp_players.player_disconnect
-  message_handlers.VehicleLuaCommand = handle_vehicle_lua
   message_handlers.CouplerAttached = kissmp_vehiclemanager.attach_coupler
   message_handlers.CouplerDetached = kissmp_vehiclemanager.detach_coupler
   message_handlers.ElectricsUndefinedUpdate = kissmp_vehiclemanager.electrics_diff_update
   message_handlers.ControllersUndefinedUpdate = kissmp_vehiclemanager.controllers_diff_update
-
   message_handlers.VehicleSetPosition = kissmp_vehiclemanager.set_position
   message_handlers.VehicleSetPositionRotation = kissmp_vehiclemanager.set_position_rotation
   message_handlers.VehicleResetInPlace = kissmp_vehiclemanager.reset_in_place
@@ -262,7 +273,9 @@ local function connect(addr, player_name, is_public)
   M.is_server_public = is_public or false
   public_scripting = kissmp_config.get_setting("security.public_scripting")
   public_mods = kissmp_config.get_setting("security.public_mods")
+
   kissmp_main.load_connected_extensions()
+  set_runtime_message_handlers()
 
   if M.connection.connected then
     disconnect()
@@ -370,7 +383,9 @@ local function connect(addr, player_name, is_public)
   for k, v in pairs(missing_mods) do
     log("I", "kissmp_network.connect", "Missing Mod "..k..": "..v)
   end
+  local delay_level_load = false
   if #missing_mods > 0 then
+    delay_level_load = true
     -- Do not allow public servers to force mod downloads
     if M.is_server_public and not public_mods then
       kissmp_ui.chat.add_message("Connection rejected: Missing mods.", kissmp_ui.COLOR_RED)
@@ -384,12 +399,11 @@ local function connect(addr, player_name, is_public)
       end
     end
   end
-  kissmp_vehiclemanager.loading_map = true
   if #missing_mods == 0 then
     kissmp_mods.mount_mods(mod_names)
   end
 
-  extensions.hook("onKissMPConnected", #missing_mods ~= 0, server_info)
+  extensions.hook("onKissMPConnected", delay_level_load, server_info)
   kissmp_richpresence.set(server_info.name)
   kissmp_ui.chat.add_message("Connected!")
 end

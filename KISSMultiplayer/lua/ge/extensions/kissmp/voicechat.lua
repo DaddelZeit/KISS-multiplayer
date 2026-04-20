@@ -7,7 +7,6 @@ local pl, pr = vec3(), vec3()
 local cam_rot = quat()
 
 local function onUpdate()
-  if not kissmp_network.connection.connected then return end
   position:set(core_camera.getPositionXYZ())
   cam_rot:set(core_camera.getQuatXYZW())
 
@@ -42,5 +41,6 @@ M.onUpdate = onUpdate
 M.onExtensionLoaded = function()
   setExtensionUnloadMode(M, "manual")
 end
+M.onExtensionUnloaded = end_vc
 
 return M

@@ -73,6 +73,10 @@ local function get_setting(id)
   return config[id]
 end
 
+local function send_config()
+  extensions.hook("onKissMPSettingsChanged", magic_config)
+end
+
 local function load_config()
   local default_config = jsonReadFile("/settings/kissmp_config_default.json")
   defaults = default_config.data
@@ -122,6 +126,7 @@ M.load_config = load_config
 
 M.onUpdate = update
 M.onKissMPLoaded = onKissMPLoaded
+M.onKissMPConnected = send_config
 M.onExtensionLoaded = function()
   setExtensionUnloadMode(M, "manual")
 end

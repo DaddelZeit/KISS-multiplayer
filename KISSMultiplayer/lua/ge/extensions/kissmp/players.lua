@@ -98,8 +98,11 @@ local function spawn_player(data)
 end
 
 local function delete_player_body(id)
-  M.player_bodies[id]:delete()
-  M.player_bodies[id] = nil
+  local obj = M.player_bodies[id]
+  if obj and obj.delete then
+    obj:delete()
+    M.player_bodies[id] = nil
+  end
 end
 
 local original_position = vec3()
@@ -148,9 +151,12 @@ local function spawn_player_head(id, veh_id)
 end
 
 local function delete_player_head(id)
-  M.player_heads_in_cars[id]:delete()
-  M.player_heads_in_cars[id] = nil
-  M.player_heads_attachments[id] = nil
+  local obj = M.player_heads_in_cars[id]
+  if obj and obj.delete then
+    obj:delete()
+    M.player_heads_in_cars[id] = nil
+    M.player_heads_attachments[id] = nil
+  end
 end
 
 local camera_pos = vec3()
@@ -211,18 +217,28 @@ local function player_disconnect(data)
   local id = data
   M.players[id] = nil
 
-  if M.player_heads_in_cars[id] then
-    delete_player_head(id)
-  end
+  delete_player_head(id)
+  delete_player_body(id)
 
-  if M.player_bodies[id] then
-    delete_player_body(id)
-  end
   M.player_transforms[id] = nil
 end
 
 local function player_info_update(player_info)
   M.players[player_info.id] = player_info
+end
+
+local function onKissMPDisconnected()
+  -- clear scene
+  for id in pairs(M.player_heads_in_cars) do
+    delete_player_head(id)
+    delete_player_body(id)
+  end
+
+  M.players = {}
+  M.player_bodies = {}
+  M.player_transforms = {}
+  M.player_heads_in_cars = {}
+  M.player_heads_attachments = {}
 end
 
 local function onKissMPSettingsChanged(config)
@@ -237,6 +253,7 @@ M.player_disconnect = player_disconnect
 M.player_info_update = player_info_update
 
 M.onUpdate = update_players
+M.onKissMPDisconnected = onKissMPDisconnected
 M.onKissMPSettingsChanged = onKissMPSettingsChanged
 M.onExtensionLoaded = function()
   setExtensionUnloadMode(M, "manual")

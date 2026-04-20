@@ -12,18 +12,21 @@ M.install_path = ""
 local extension_load_list = {
   -- network first
   "kissmp_network",
-  "kissmp_vehiclemanager",
-  "kissmp_richpresence",
-  "kissmp_voicechat",
 
   -- other important client stuff
   "kissmp_mods",
   "kissmp_config",
-  "kissmp_players",
-  "kissmp_transform",
 
   -- ui goes last
   "kissmp_ui",
+}
+
+local extensions_connected_list = {
+  "kissmp_transform",
+  "kissmp_levelmanager",
+  "kissmp_players",
+  "kissmp_vehiclemanager",
+  "kissmp_voicechat",
 }
 
 local function check_bridge_connect()
@@ -74,13 +77,30 @@ local function onUpdate()
   extensions.hook("onKissMPLoaded")
 end
 
+local function load_connected_extensions()
+  for i=1, #extensions_connected_list do
+    extensions.load(extensions_connected_list[i])
+  end
+end
+
+local function unload_connected_extensions()
+  for i=1, #extensions_connected_list do
+    extensions.unload(extensions_connected_list[i])
+  end
+end
+
 local function onExtensionUnloaded()
+  for i=1, #extensions_connected_list do
+    extensions.unload(extensions_connected_list[i])
+  end
   for i=1, #extension_load_list do
     extensions.unload(extension_load_list[i])
   end
 end
 
 M.check_bridge_connect = check_bridge_connect
+M.load_connected_extensions = load_connected_extensions
+M.unload_connected_extensions = unload_connected_extensions
 
 M.onUpdate = onUpdate
 M.onExtensionUnloaded = onExtensionUnloaded

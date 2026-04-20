@@ -19,8 +19,6 @@ M.hidden = {}
 local transform_pos = vec3()
 local camera_pos = vec3()
 local function update(dt)
-  if not kissmp_network.connection.connected then return end
-  if kissmp_vehiclemanager and kissmp_vehiclemanager.loading_map then return end
   -- Get rotation/angular velocity from vehicle lua
   for vid, v in vehiclesIterator() do
     if not M.inactive[vid] then
