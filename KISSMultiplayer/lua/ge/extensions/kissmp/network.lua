@@ -1,6 +1,8 @@
 local M = {}
 
 local version = require("lua/ge/extensions/kissmp/version")
+local kissmp_richpresence = require("lua/ge/extensions/kissmp/richpresence")
+
 M.VERSION_STR = version.VERSION_STR
 M.is_server_public = false
 
@@ -97,7 +99,7 @@ local function disconnect(data)
   end
   kissmp_ui.chat.add_message(text)
   M.connection.connected = false
-  
+
   if kissmp_vehiclemanager then
     kissmp_vehiclemanager.loading_map = false
   end
@@ -115,11 +117,10 @@ local function disconnect(data)
   kissmp_players.player_transforms = {}
   kissmp_players.player_heads_in_cars = {}
   kissmp_players.player_heads_attachments = {}
-  kissmp_richpresence.update()
-  
-  if getMissionFilename() ~= "" then
-    returnToMainMenu()
-  end
+  kissmp_richpresence.clear()
+
+  extensions.hook("onKissMPDisconnected", data)
+  kissmp_main.unload_connected_extensions()
 end
 
 local function check_lua(l)
@@ -257,15 +258,11 @@ local function generate_secret(server_identifier)
   return hashStringSHA1(secret)
 end
 
-local function change_map(map)
-  kissmp_vehiclemanager.loading_map = true
-  freeroam_freeroam.startFreeroam(map)
-end
-
 local function connect(addr, player_name, is_public)
   M.is_server_public = is_public or false
   public_scripting = kissmp_config.get_setting("security.public_scripting")
   public_mods = kissmp_config.get_setting("security.public_mods")
+  kissmp_main.load_connected_extensions()
 
   if M.connection.connected then
     disconnect()
@@ -274,7 +271,6 @@ local function connect(addr, player_name, is_public)
     M.connection.tcp = nil
   end
 
-  kissmp_players.players = {}
   M.download_start_time = 0
   M.download_queue = {}
   M.download_total_bytes = 0
@@ -366,7 +362,7 @@ local function connect(addr, player_name, is_public)
 
   M.download_total_bytes = total_missing_bytes
   M.downloaded_bytes = 0
- 
+
   kissmp_mods.deactivate_all_mods()
   if #available_mods > 0 then
     kissmp_mods.mount_mods(available_mods)
@@ -391,16 +387,11 @@ local function connect(addr, player_name, is_public)
   kissmp_vehiclemanager.loading_map = true
   if #missing_mods == 0 then
     kissmp_mods.mount_mods(mod_names)
-    change_map(server_info.map)
   end
-  kissmp_richpresence.update()
-  kissmp_ui.chat.add_message("Connected!")
-end
 
-local function on_finished_download()
-  M.download_start_time = 0
-  kissmp_vehiclemanager.loading_map = true
-  change_map(M.connection.server_info.map)
+  extensions.hook("onKissMPConnected", #missing_mods ~= 0, server_info)
+  kissmp_richpresence.set(server_info.name)
+  kissmp_ui.chat.add_message("Connected!")
 end
 
 local function send_ping()
@@ -546,7 +537,8 @@ local function onUpdate(dt)
           M.downloading = false
           kissmp_ui.show_download = false
           M.downloaded_bytes = M.download_total_bytes
-          on_finished_download()
+          extensions.hook("onKissMPFinishedDownloads")
+          M.download_start_time = 0
         end
       end
 
