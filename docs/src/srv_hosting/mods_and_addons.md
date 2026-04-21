@@ -13,7 +13,7 @@ The `kissmp_mods` folder can be found in the same directory as your BeamNGs mods
 Addons are scripts that run on the server and are not downloaded to any players.\
 With addons, servers are able to do all kinds of things (like gamemodes, commands, etc).\
 
-If you would like to get started with creating Addons for KissMP, see [Server side Lua API](../srv_lua/lua_api.html).\
+If you would like to get started with creating Addons for KissMP, see [Server side Lua API](../srv_lua/lua_api.md).\
 A community mantained collection of addons is available [here](https://github.com/AsciiJakob/Awesome-KissMP).
 
 #### Installation
