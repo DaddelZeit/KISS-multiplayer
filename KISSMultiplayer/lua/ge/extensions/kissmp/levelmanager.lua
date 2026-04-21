@@ -1,11 +1,13 @@
 local M = {}
 
 local current_level = ""
+local level_connected = false
+
 M.is_loading = false
 local function load_level(filename)
   if FS:fileExists(filename) then
-    freeroam_freeroam.startFreeroam(filename)
     M.is_loading = true
+    freeroam_freeroam.startFreeroam(filename)
   else
     log("E", "kissmp_levelmanager.load_level", "Level does not exist!")
     kissmp_network.disconnect()
@@ -24,19 +26,23 @@ local function onKissMPConnected(delay_level_load, server_info)
 end
 
 local function onKissMPDisconnected()
-  if getMissionFilename() ~= "" or M.is_loading then
+  if level_connected or M.is_loading then
+    M.is_loading = false
+    level_connected = false
     returnToMainMenu()
   end
 end
 
 local function onClientEndMission()
-  if getMissionFilename():lower() ~= current_level:lower() and not M.is_loading then
+  if level_connected then
+    level_connected = false
     kissmp_network.disconnect()
   end
 end
 
 local function onClientPostStartMission()
   M.is_loading = false
+  level_connected = true
 end
 
 local function onExtensionLoaded()

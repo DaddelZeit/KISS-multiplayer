@@ -228,7 +228,7 @@ local function spawn_vehicle(server_data)
     end
   end
 
-  if kissmp_levelmanager.loading_map or M.delay_spawns then
+  if kissmp_levelmanager.is_loading or M.delay_spawns then
     log("D", "kissmp_vehiclemanager.spawn_vehicle", "Buffering vehicle")
     M.vehicle_buffer[data.server_id] = server_data
     return
@@ -325,7 +325,7 @@ local function onUpdate(dt)
       end
     end
   end
-  if not (kissmp_levelmanager.loading_map or M.delay_spawns) then
+  if not (kissmp_levelmanager.is_loading or M.delay_spawns) then
     local to_remove = {}
     for k, vehicle_server_data in pairs(M.vehicle_buffer) do
       local t = kissmp_transform.raw_transforms[k]
