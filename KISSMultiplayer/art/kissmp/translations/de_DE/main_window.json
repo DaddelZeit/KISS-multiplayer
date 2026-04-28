@@ -1,0 +1,74 @@
+{
+  "ui.main.name": "KissMP {version}",
+  "ui.main.player_name": "Spielername:",
+  "ui.main.connect": "Verbinden",
+  "ui.main.disconnect": "Trennen",
+  "ui.main.refresh_list": "Liste aktualisieren",
+
+  "ui.main.server_details.address": "Adresse: {addr}",
+  "ui.main.server_details.map": "Karte: {map}",
+
+  "ui.main.server_list.name": "Serverliste",
+  "ui.main.server_list.search": "Suche:",
+  "ui.main.server_list.filters": "Filter:",
+  "ui.main.server_list.filter_not_full": "Nicht voll",
+  "ui.main.server_list.filter_not_empty": "Nicht leer",
+  "ui.main.server_list.details.favourite": "Zu Favoriten hinzufügen",
+
+  "ui.main.server_list.no_bridge": "Die Bridge läuft nicht. Bitte starte die Bridge und klicke dann auf 'Liste aktualisieren'.",
+  "ui.main.server_list.empty": "Serverliste ist leer",
+
+  "ui.main.direct_connect.name": "Direktverbindung",
+  "ui.main.direct_connect.address": "Serveradresse:",
+
+  "ui.main.create_server.name": "Server erstellen",
+  "ui.main.create_server.server_name": "Servername:",
+  "ui.main.create_server.max_players": "Max. Spielerzahl:",
+  "ui.main.create_server.map": "Karte:",
+  "ui.main.create_server.port": "Port:",
+  "ui.main.create_server.mods": "Mods:",
+  "ui.main.create_server.create": "Server erstellen",
+
+  "ui.main.favourites.name": "Favoriten",
+  "ui.main.favourites.add": "Hinzufügen",
+  "ui.main.favourites.remove": "Aus Favoriten entfernen",
+  "ui.main.favourites.empty": "Favoritenliste ist leer",
+  "ui.main.favourites.user_added_server": "{server_name} [BENUTZER]",
+  "ui.main.favourites.offline_server": "{server_name} [OFFLINE]",
+  "ui.main.favourites.online_server": "{server_name} [{player_count}/{max_players}]",
+  "ui.main.favourites.add_window": "Favorit hinzufügen",
+  "ui.main.favourites.add_window.name": "Name:",
+  "ui.main.favourites.add_window.address": "Adresse:",
+  "ui.main.favourites.add_window.cancel": "Abbrechen",
+
+  "ui.main.settings.name": "Einstellungen",
+  "ui.main.settings.distance_near": "Nah",
+  "ui.main.settings.distance_balanced": "Ausgeglichen",
+  "ui.main.settings.distance_far": "weit",
+  "ui.main.settings.distance_very_far": "Sehr weit",
+  "ui.main.settings.distance_custom": "Benutzerdefiniert",
+  "ui.main.settings.distance_ext": "{preset_name} ({distance}{unit})",
+
+  "ui.main.settings.separator_ui": "Benutzeroberfläche",
+  "ui.main.settings.ui.scale": "UI-Skalierung",
+  "ui.main.settings.ui.window_opacity": "Fenster-Deckkraft",
+
+  "ui.main.settings.separator_player": "Sichtbarkeit der Spieler",
+  "ui.main.settings.players.show_drivers": "Spieler in Fahrzeugen anzeigen",
+  "ui.main.settings.players.show_nametags": "Namensschilder anzeigen",
+  "ui.main.settings.players.nametags.colorful": "Spielerfarben in Namensschildern verwenden",
+  "ui.main.settings.players.nametags.fade": "Namensschilder basierend auf Distanz ausblenden",
+  "ui.main.settings.players.nametags.use_z": "Namensschilder hinter Objekten verbergen",
+
+  "ui.main.settings.separator_performance": "Leistung",
+  "ui.main.settings.perf.view_distance": "Fahrzeug-Sichtweite begrenzen",
+  "ui.main.settings.view_distance_warning": "Experimentell:\nDies kann zu kurzen Rucklern führen, wenn du dich Fahrzeugen näherst.\nEs verhindert zudem das Wechseln zu Fahrzeugen außerhalb deiner Sichtweite.",
+
+  "ui.main.settings.separator_danger": "Gefahrenzone",
+  "ui.main.settings.security.public_scripting": "Befehle durch öffentliche Server zulassen",
+  "ui.main.settings.security.public_mods": "Installation von Mods durch öffentliche Server zulassen",
+
+  "ui.main.settings.security_confirmation_popup": "Server können deinen Computer infizieren.\nServer können deine Daten stehlen.\nNUTZE NUR ÖFFENTLICHE SERVER, DENEN DU VERTRAUST.",
+  "ui.main.settings.security_confirmation_instruction_timer": "({time}) Gib deinen Spielernamen ein, um fortzufahren:",
+  "ui.main.settings.security_confirmation_instruction": "Gib deinen Spielernamen ein, um fortzufahren:"
+}

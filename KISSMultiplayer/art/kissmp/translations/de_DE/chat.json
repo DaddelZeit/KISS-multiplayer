@@ -1,0 +1,7 @@
+{
+  "ui.chat.name": "Chat",
+  "ui.chat.name_notifications": "Chat ({count})",
+  "ui.chat.send": "Senden",
+  "ui.chat.player_list": "Spielerliste:",
+  "ui.chat.initial_message": "KissMP Chat"
+}
