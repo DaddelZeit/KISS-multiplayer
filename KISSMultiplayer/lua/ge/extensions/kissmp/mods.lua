@@ -2,7 +2,7 @@ local M = {}
 M.mods = {}
 
 local function is_special_mod(mod_path)
-  local special_mods = {"kissmultiplayer.zip", "translations.zip"}
+  local special_mods = {kissmp_main.install_path, "translations.zip"}
   local mod_path_lower = string.lower(mod_path)
   for _, special_mod in pairs(special_mods) do
     if string.endswith(mod_path_lower, special_mod) then
@@ -42,8 +42,11 @@ local function deactivate_all_mods()
   for k, mod_path in pairs(FS:findFiles("/kissmp_mods/", "*.zip", 1000)) do
     FS:unmount(mod_path)
   end
-  for k, mod_path in pairs(FS:directoryList("/mods/unpacked/", "*", 1)) do
-    if not is_app_mod(mod_path) then
+
+  local unpacked_mods = FS:directoryList("/mods/unpacked/", "*", 1)
+  for k, mod_path in pairs(unpacked_mods) do
+    local path = mod_path.."/"
+    if path ~= kissmp_main.install_path and not is_app_mod(mod_path) then
       FS:unmount(mod_path.."/")
     end
   end
@@ -132,5 +135,9 @@ M.deactivate_all_mods = deactivate_all_mods
 M.set_mods_list = set_mods_list
 M.update_status_all = update_status_all
 M.update_status = update_status
+
+M.onExtensionLoaded = function()
+  setExtensionUnloadMode(M, "manual")
+end
 
 return M

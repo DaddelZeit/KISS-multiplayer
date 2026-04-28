@@ -179,7 +179,7 @@ local function send()
   }
   if diff_count > 0 then
     obj:queueGameEngineLua(string.format(
-      "network.send_data(%q, true)",
+      "kissmp_network.send_data(%q, true)",
       jsonEncode(data)))
   end
 end
@@ -227,7 +227,7 @@ local function apply_diff(buffer_data)
   end
 end
 
-local function onExtensionLoaded()
+local function onKissMPVehLoaded()
   -- Ignore powertrain electrics
   local devices = powertrain.getDevices()
   for _, device in pairs(devices) do
@@ -301,11 +301,11 @@ local function onExtensionLoaded()
           local cid2 = beamstate.nodeNameMap[vn.cid2]
 
           if cid1 then
-            kiss_couplers.ignore_coupler_node(cid1)
+            kissmp_couplers.ignore_coupler_node(cid1)
           end
 
           if cid2 then
-            kiss_couplers.ignore_coupler_node(cid2)
+            kissmp_couplers.ignore_coupler_node(cid2)
           end
         end
       end
@@ -354,6 +354,6 @@ M.send = send
 M.apply_diff = apply_diff
 M.ignore_key = ignore_key
 
-M.onExtensionLoaded = onExtensionLoaded
+M.onKissMPVehLoaded = onKissMPVehLoaded
 
 return M

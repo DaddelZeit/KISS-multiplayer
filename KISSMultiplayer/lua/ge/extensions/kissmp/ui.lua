@@ -1,22 +1,21 @@
 local M = {}
 
-local main_window = require("kissmp.ui.main")
-M.chat = require("kissmp.ui.chat")
-M.download_window = require("kissmp.ui.download")
-local names = require("kissmp.ui.names")
+local main_window = require("kissmp/ui/main")
+M.chat = require("kissmp/ui/chat")
+M.download_window = require("kissmp/ui/download")
+local names = require("kissmp/ui/names")
 
 M.tabs = {
-  server_list = require("kissmp.ui.tabs.server_list"),
-  favorites = require("kissmp.ui.tabs.favorites"),
-  settings = require("kissmp.ui.tabs.settings"),
-  direct_connect = require("kissmp.ui.tabs.direct_connect"),
-  create_server = require("kissmp.ui.tabs.create_server"),
+  server_list = require("kissmp/ui/tabs/server_list"),
+  favorites = require("kissmp/ui/tabs/favorites"),
+  settings = require("kissmp/ui/tabs/settings"),
+  direct_connect = require("kissmp/ui/tabs/direct_connect"),
+  create_server = require("kissmp/ui/tabs/create_server"),
 }
 
 M.dependencies = {"ui_imgui"}
 
 M.master_addr = "http://kissmp.thehellbox.ru:3692/"
-M.bridge_launched = false
 
 M.show_download = false
 M.downloads_info = {}
@@ -31,6 +30,7 @@ local gui_module = require("ge/extensions/editor/api/gui")
 M.gui = {setupEditorGuiTheme = nop}
 local imgui = ui_imgui
 
+local connected = false
 local ui_showing = false
 local names_visible = false
 local uiscale = 1
@@ -88,7 +88,7 @@ local function change_scale(new_uiscale)
 end
 
 local function onUpdate(dt)
-  if getMissionFilename() ~= '' and not vehiclemanager.is_network_session then
+  if getMissionFilename() ~= "" and not connected then
     return
   end
 
@@ -100,16 +100,24 @@ local function onUpdate(dt)
   M.chat.draw()
   M.download_window.draw()
 
-  if M.incorrect_install then
+  if kissmp_main.incorrect_install then
     draw_incorrect_install()
   end
 
-  if not M.force_disable_nametags and names_visible then
+  if connected and not M.force_disable_nametags and names_visible then
     names.draw()
   end
 
   change_scale(prev_ui_scale)
   imgui.PopFont() -- reset font size
+end
+
+local function onKissMPConnected()
+  connected = true
+end
+
+local function onKissMPDisconnected()
+  connected = false
 end
 
 local function onKissMPSettingsChanged(config)
@@ -128,8 +136,13 @@ local function onKissMPSettingsChanged(config)
 end
 
 M.onKissMPSettingsChanged = onKissMPSettingsChanged
-M.onExtensionLoaded = open_ui
+M.onKissMPConnected = onKissMPConnected
+M.onKissMPDisconnected = onKissMPDisconnected
+M.onKissMPLoaded = open_ui
 M.onUpdate = onUpdate
+M.onExtensionLoaded = function()
+  setExtensionUnloadMode(M, "manual")
+end
 
 -- Backwards compatability
 M.add_message = M.chat.add_message

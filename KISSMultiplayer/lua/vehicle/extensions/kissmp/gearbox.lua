@@ -35,7 +35,7 @@ local function apply(buffer_data)
   last_received_data = data
 end
 
-local function onExtensionLoaded()
+local function onKissMPVehLoaded()
   mainController = controller.mainController
   gearbox = powertrain.getDevice("gearbox")
 
@@ -53,6 +53,7 @@ end
 
 M.apply = apply
 M.get_gearbox_data = get_gearbox_data
-M.onExtensionLoaded = onExtensionLoaded
+
+M.onKissMPVehLoaded = onKissMPVehLoaded
 
 return M

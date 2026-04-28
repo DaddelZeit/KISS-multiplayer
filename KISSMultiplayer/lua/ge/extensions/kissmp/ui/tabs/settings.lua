@@ -31,7 +31,7 @@ local function render_checkbox(ui_name, setting_id)
     checkbox_name = ui_name..checkbox_name
   end
   if im.Checkbox(checkbox_name, config_items[setting_id]) then
-    kissconfig.set_setting(setting_id, config_items[setting_id][0])
+    kissmp_config.set_setting(setting_id, config_items[setting_id][0])
   end
 end
 
@@ -42,7 +42,7 @@ local function render_sliderF(ui_name, setting_id,  min, max, format)
     slider_name = ui_name..slider_name
   end
   if im.SliderFloat(slider_name, config_items[setting_id], min, max, format) then
-    kissconfig.set_setting(setting_id, config_items[setting_id][0])
+    kissmp_config.set_setting(setting_id, config_items[setting_id][0])
   end
 end
 
@@ -52,7 +52,7 @@ local function render_sliderI(ui_name, setting_id, min, max, format)
     slider_name = ui_name..slider_name
   end
   if im.SliderInt(slider_name, config_items[setting_id], min, max, format) then
-    kissconfig.set_setting(setting_id, config_items[setting_id][0])
+    kissmp_config.set_setting(setting_id, config_items[setting_id][0])
   end
 end
 
@@ -92,7 +92,7 @@ local function draw(dt)
     for _, v in ipairs(fade_distances) do
       if im.Selectable1(string.format("%s (%dm)", v[1], v[2]), fade_distance_name == v[1]) then
         distance = v[2]
-        kissconfig.set_setting("players.nametags.fade_start_distance", distance)
+        kissmp_config.set_setting("players.nametags.fade_start_distance", distance)
         fade_distance_name = v[1]
       end
     end
@@ -126,7 +126,7 @@ local function draw(dt)
     for _, v in ipairs(view_distances) do
       if im.Selectable1(string.format("%s (%dm)", v[1], v[2]), view_distance_name == v[1]) then
         distance = v[2]
-        kissconfig.set_setting("perf.view_distance", distance)
+        kissmp_config.set_setting("perf.view_distance", distance)
         view_distance_name = v[1]
       end
     end
@@ -168,7 +168,7 @@ local function draw(dt)
       mouse_cursor_pos = im.GetMousePos()
       confirm_popup_active = true
     else
-      kissconfig.set_setting("security.public_scripting", false)
+      kissmp_config.set_setting("security.public_scripting", false)
     end
   end
   if im.Checkbox("Allow public servers to install mods", config_items["security.public_mods"]) then
@@ -177,7 +177,7 @@ local function draw(dt)
       mouse_cursor_pos = im.GetMousePos()
       confirm_popup_active = true
     else
-      kissconfig.set_setting("security.public_mods", false)
+      kissmp_config.set_setting("security.public_mods", false)
     end
   end
   im.PopStyleColor()
@@ -200,9 +200,9 @@ local function draw(dt)
       im.Text("Enter your player name to continue:")
     end
     if im.InputText("##name", confirm_player_name) then
-      if ffi.string(confirm_player_name) == ffi.string(kissui.player_name) then
-        kissconfig.set_setting("security.public_scripting", config_items["security.public_scripting"][0])
-        kissconfig.set_setting("security.public_mods", config_items["security.public_mods"][0])
+      if ffi.string(confirm_player_name) == ffi.string(kissmp_ui.player_name) then
+        kissmp_config.set_setting("security.public_scripting", config_items["security.public_scripting"][0])
+        kissmp_config.set_setting("security.public_mods", config_items["security.public_mods"][0])
         ffi.copy(confirm_player_name, "")
         confirm_timer = 5
         confirm_popup_active = false
@@ -215,8 +215,8 @@ local function draw(dt)
 
     im.EndPopup()
   elseif confirm_popup_active then -- user closed it
-    config_items["security.public_scripting"][0] = kissconfig.get_setting("security.public_scripting")
-    config_items["security.public_mods"][0] = kissconfig.get_setting("security.public_mods")
+    config_items["security.public_scripting"][0] = kissmp_config.get_setting("security.public_scripting")
+    config_items["security.public_mods"][0] = kissmp_config.get_setting("security.public_mods")
     ffi.copy(confirm_player_name, "")
     confirm_timer = 5
     confirm_popup_active = false

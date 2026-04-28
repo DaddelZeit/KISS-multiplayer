@@ -9,21 +9,19 @@ local colors_buffer = {}
 local plates_buffer = {}
 local first_vehicle = true
 
-M.loading_map = false
 M.id_map = {}
 M.server_ids = {}
 M.ownership = {}
 M.vehicle_updates_buffer = {}
 M.packet_gen_buffer = {}
-M.is_network_session = false
 M.delay_spawns = false
 M.vehicle_buffer = {}
 
 local function get_current_time()
-  local date = os.date("*t", os.time() + network.connection.time_offset)
+  local date = os.date("*t", os.time() + kissmp_network.connection.time_offset)
   date.sec = 0
   date.min = 0
-  return (network.socket.gettime() + network.connection.time_offset  - os.time(date))
+  return (kissmp_network.socket.gettime() + kissmp_network.connection.time_offset  - os.time(date))
 end
 
 local function enable_spawning(enabled)
@@ -54,8 +52,8 @@ local function colors_eq(a, b)
 end
 
 local function send_vehicle_update(obj)
-  if not kisstransform.local_transforms[obj:getID()] then return end
-  local t = kisstransform.local_transforms[obj:getID()]
+  if not kissmp_transform.local_transforms[obj:getID()] then return end
+  local t = kissmp_transform.local_transforms[obj:getID()]
   if not t.input then return end
   if not t.gearbox then return end
   local rotation = t.rotation
@@ -80,7 +78,7 @@ local function send_vehicle_update(obj)
     sent_at = get_current_time()
   }
   generation = generation + 1
-  network.send_data(
+  kissmp_network.send_data(
     {
       VehicleUpdate = result
     },
@@ -89,9 +87,9 @@ local function send_vehicle_update(obj)
 end
 
 local function send_vehicle_meta_updates()
-  for id in pairs(vehiclemanager.ownership) do
+  for id in pairs(M.ownership) do
     local vehicle = getObjectByID(id)
-    if vehicle and not kisstransform.inactive[id] then
+    if vehicle and not kissmp_transform.inactive[id] then
       local changed = false
 
       local metal_data = vehicle:getMetallicPaintData()
@@ -123,7 +121,7 @@ local function send_vehicle_meta_updates()
             colors
           }
         }
-        network.send_data(data, true)
+        kissmp_network.send_data(data, true)
       end
     end
   end
@@ -134,7 +132,7 @@ local function update_ownership_limits()
   for _, _ in pairs(M.ownership) do
     owned_vehicle_count = owned_vehicle_count + 1
   end
-  if owned_vehicle_count >= network.connection.server_info.max_vehicles_per_client then
+  if owned_vehicle_count >= kissmp_network.connection.server_info.max_vehicles_per_client then
     enable_spawning(false)
   else
     enable_spawning(true)
@@ -144,7 +142,7 @@ end
 local function send_vehicle_config(vehicle_id)
   local vehicle = getObjectByID(vehicle_id)
   if vehicle then
-    vehicle:queueLuaCommand("kiss_vehicle.send_vehicle_config()")
+    vehicle:queueLuaCommand("kissmp_vehicle.send_vehicle_config()")
   end
 end
 
@@ -174,7 +172,7 @@ local function send_vehicle_config_inner(id, parts_config_json, buffer_data)
   vehicle_data.rotation = {rotation.x, rotation.y, rotation.z, rotation.w}
   vehicle_data.server_id = 0
   vehicle_data.owner = 0
-  network.send_data(
+  kissmp_network.send_data(
     {
       VehicleData = vehicle_data
     },
@@ -188,7 +186,7 @@ local function electrics_diff_update(data)
     local vehicle = getObjectByID(id)
     if not vehicle then return end
     vehicle:queueLuaCommand(string.format(
-      "kiss_electrics.apply_diff(%q)",
+      "kissmp_electrics.apply_diff(%q)",
       string_buffer.encode(data[2].diff)))
   end
 end
@@ -199,7 +197,7 @@ local function controllers_diff_update(data)
     local vehicle = getObjectByID(id)
     if not vehicle then return end
     vehicle:queueLuaCommand(string.format(
-      "kiss_controllers.apply_diff(%q)",
+      "kissmp_controllers.apply_diff(%q)",
       string_buffer.encode(data[2].diff)))
   end
 end
@@ -213,14 +211,14 @@ local function spawn_vehicle(server_data)
 
   local model_info = core_vehicles.getModel(data.name)
   if tableSize(model_info) == 0 then
-    log("W", "kissmp.vehiclemanager.spawn_vehicle", "Rejected modded vehicle spawn "..data.name)
+    log("W", "kissmp_vehiclemanager.spawn_vehicle", "Rejected modded vehicle spawn "..data.name)
     return
   end
 
   local away = true
   if view_distance then
-    if kisstransform.raw_transforms[data.server_id] then
-      local position = kisstransform.raw_transforms[data.server_id].position
+    if kissmp_transform.raw_transforms[data.server_id] then
+      local position = kissmp_transform.raw_transforms[data.server_id].position
       transform_pos:set(position[1], position[2], position[3])
       away = transform_pos:squaredDistance(camera_pos) > view_distance
     else
@@ -230,17 +228,17 @@ local function spawn_vehicle(server_data)
     end
   end
 
-  if M.loading_map or M.delay_spawns then
-    log("D", "kissmp.vehiclemanager.spawn_vehicle", "Buffering vehicle")
+  if kissmp_levelmanager.is_loading or M.delay_spawns then
+    log("D", "kissmp_vehiclemanager.spawn_vehicle", "Buffering vehicle")
     M.vehicle_buffer[data.server_id] = server_data
     return
   elseif away and view_distance then
-    log("D", "kissmp.vehiclemanager.spawn_vehicle", "Buffering vehicle")
+    log("D", "kissmp_vehiclemanager.spawn_vehicle", "Buffering vehicle")
     M.vehicle_buffer[data.server_id] = server_data
     return
   end
-  if data.owner == network.get_client_id() then
-    log("I", "kissmp.vehiclemanager.spawn_vehicle", "Vehicle belongs to local client, setting ownership")
+  if data.owner == kissmp_network.get_client_id() then
+    log("I", "kissmp_vehiclemanager.spawn_vehicle", "Vehicle belongs to local client, setting ownership")
     M.id_map[data.server_id] = data.in_game_id
     M.ownership[data.in_game_id] = data.server_id
     M.server_ids[data.in_game_id] = data.server_id
@@ -256,11 +254,11 @@ local function spawn_vehicle(server_data)
   local cp1 = data.palete_1
   local name = data.name
   if name == "unicycle" then
-    kissplayers.spawn_player(data)
+    kissmp_players.spawn_player(data)
     return
   end
 
-  log("D", "kissmp.vehiclemanager.spawn_vehicle", "Attempt to spawn vehicle "..name)
+  log("D", "kissmp_vehiclemanager.spawn_vehicle", "Attempt to spawn vehicle "..name)
   local options = {
     vehicleName = "mp_veh",
     pos = vec3(data.position),
@@ -283,24 +281,21 @@ local function spawn_vehicle(server_data)
   end
   M.id_map[data.server_id] = spawned:getID()
   M.server_ids[spawned:getID()] = data.server_id
-  kisstransform.inactive[spawned:getID()] = false
+  kissmp_transform.inactive[spawned:getID()] = false
   --if current_vehicle then be:enterVehicle(0, current_vehicle) end
   spawned:queueLuaCommand("extensions.hook('kissUpdateOwnership', false)")
   if electrics and controllers then
     spawned:queueLuaCommand(string.format(
-      [[kiss_electrics.apply_diff(%q)
-        kiss_controllers.apply_diff(%q)]],
+      [[kissmp_electrics.apply_diff(%q);
+        kissmp_controllers.apply_diff(%q)]],
       string_buffer.encode(electrics.diff),
       string_buffer.encode(controllers.diff)))
   end
 end
 
 local function onUpdate(dt)
-  if not network.connection.connected then return end
   camera_pos:set(core_camera.getPositionXYZ())
-  if (getMissionFilename():lower() ~= network.connection.server_info.map:lower()) and (getMissionPath():lower() ~= network.connection.server_info.map:lower()) and not M.loading_map then
-    network.disconnect()
-  end
+
   -- Track color and plate changes
   meta_timer = meta_timer + dt
   if meta_timer >= 1 then
@@ -308,16 +303,16 @@ local function onUpdate(dt)
     meta_timer = meta_timer - 1
   end
 
-  local tick_time = (1/network.connection.tickrate)
+  local tick_time = (1/kissmp_network.connection.tickrate)
   if timer <  tick_time then
     timer = timer + dt
   else
     timer = timer - tick_time
-    for i, v in pairs(vehiclemanager.ownership) do
+    for i, v in pairs(M.ownership) do
       local vehicle = getObjectByID(i)
-      if vehicle and (not kisstransform.inactive[i]) then
+      if vehicle and (not kissmp_transform.inactive[i]) then
         send_vehicle_update(vehicle)
-        vehicle:queueLuaCommand("kiss_electrics.send(); kiss_controllers.send()")
+        vehicle:queueLuaCommand("kissmp_electrics.send(); kissmp_controllers.send()")
       end
     end
   end
@@ -325,15 +320,15 @@ local function onUpdate(dt)
   for k, v in pairs(M.id_map) do
     if not M.ownership[v] then
       local vehicle = getObjectByID(v)
-      if vehicle and (not kisstransform.inactive[v]) then
-        vehicle:queueLuaCommand("kiss_vehicle.update_eligible_nodes()")
+      if vehicle and (not kissmp_transform.inactive[v]) then
+        vehicle:queueLuaCommand("kissmp_vehicle.update_eligible_nodes()")
       end
     end
   end
-  if not (M.loading_map or M.delay_spawns) then
+  if not (kissmp_levelmanager.is_loading or M.delay_spawns) then
     local to_remove = {}
     for k, vehicle_server_data in pairs(M.vehicle_buffer) do
-      local t = kisstransform.raw_transforms[k]
+      local t = kissmp_transform.raw_transforms[k]
       if t then
         transform_pos:set(t.position[1], t.position[2], t.position[3])
         if not (view_distance and transform_pos:squaredDistance(camera_pos) > view_distance) then
@@ -349,18 +344,18 @@ local function onUpdate(dt)
 end
 
 local function update_vehicle(data)
-  kisstransform.raw_transforms[data.vehicle_id] = data.transform
+  kissmp_transform.raw_transforms[data.vehicle_id] = data.transform
   -- If vehicle is a unicycle(Walking mode character), sync it differently
-  local character = kissplayers.players[data.vehicle_id]
+  local character = kissmp_players.player_bodies[data.vehicle_id]
   if character then
-    local character_transforms = kissplayers.player_transforms[data.vehicle_id]
+    local character_transforms = kissmp_players.player_transforms[data.vehicle_id]
     if not character_transforms then
       character_transforms = {
         target_position = vec3(),
         rotation = {},
         velocity = vec3()
       }
-      kissplayers.player_transforms[data.vehicle_id] = character_transforms
+      kissmp_players.player_transforms[data.vehicle_id] = character_transforms
     end
 
     local temp = data.transform.position
@@ -380,11 +375,11 @@ local function update_vehicle(data)
   local vehicle = getObjectByID(id)
   if not vehicle then return end
 
-  kisstransform.update_vehicle_transform(data)
-  if not kisstransform.inactive[id] then
+  kissmp_transform.update_vehicle_transform(data)
+  if not kissmp_transform.inactive[id] then
     vehicle:queueLuaCommand(string.format(
-      [[kiss_input.apply(%q)
-        kiss_gearbox.apply(%q)]],
+      [[kissmp_input.apply(%q)
+        kissmp_gearbox.apply(%q)]],
       string_buffer.encode(data.electrics),
       string_buffer.encode(data.gearbox)))
   end
@@ -392,10 +387,9 @@ end
 
 local function remove_vehicle(data)
   local id = data
-  if kissplayers.players[id] then
-    kissplayers.players[id]:delete()
-    kissplayers.players[id] = nil
-    kissplayers.player_transforms[id] = nil
+  if kissmp_players.player_bodies[id] then
+    kissmp_players.delete_player_body(id)
+    kissmp_players.player_transforms[id] = nil
     return
   end
   local local_id = M.id_map[id] or -1
@@ -406,7 +400,7 @@ local function remove_vehicle(data)
     M.id_map[id] = nil
     M.ownership[local_id] = nil
     M.vehicle_updates_buffer[local_id] = nil
-    kisstransform.received_transforms[local_id] = nil
+    kissmp_transform.received_transforms[local_id] = nil
     update_ownership_limits()
   else
     M.vehicle_buffer[id] = nil
@@ -472,7 +466,7 @@ local function attach_coupler_inner(buffer_data)
   local data = string_buffer.decode(buffer_data)
   data.obj_a = M.server_ids[data.obj_a]
   data.obj_b = M.server_ids[data.obj_b]
-  network.send_data(
+  kissmp_network.send_data(
     {
       CouplerAttached = data
     },
@@ -484,7 +478,7 @@ local function detach_coupler_inner(buffer_data)
   local data = string_buffer.decode(buffer_data)
   data.obj_a = M.server_ids[data.obj_a]
   data.obj_b = M.server_ids[data.obj_b]
-  network.send_data(
+  kissmp_network.send_data(
     {
       CouplerDetached = data
     },
@@ -522,7 +516,7 @@ local function attach_coupler(data)
     tempVec2:setSub(nodeBPos)
 
     vehicle_b:setPositionNoPhysicsReset(tempVec2)
-    vehicle_b:queueLuaCommand("kiss_couplers.attach_coupler("..data.node_b_id..")")
+    vehicle_b:queueLuaCommand("kissmp_couplers.attach_coupler("..data.node_b_id..")")
     onCouplerAttached(obj_a, obj_b, data.node_a_id, data.node_b_id)
   end
 end
@@ -540,7 +534,7 @@ local function detach_coupler(data)
     tempVec2:set(vehicle_b:getPositionXYZ())
     if tempVec1:squaredDistance(tempVec2) > distanceThreshold then return end
 
-    vehicle:queueLuaCommand("kiss_couplers.detach_coupler("..data.node_a_id..")")
+    vehicle:queueLuaCommand("kissmp_couplers.detach_coupler("..data.node_a_id..")")
     onCouplerDetached(obj_a, obj_b, data.node_a_id, data.node_b_id)
     onCouplerDetach(obj_a, data.node_a_id)
     onCouplerDetach(obj_b, data.node_b_id)
@@ -573,7 +567,6 @@ local function reset_in_place(data)
 end
 
 local function onVehicleSpawned(id)
-  if not network.connection.connected then return end
   local vehicle = getObjectByID(id)
   tempVec1:set(vehicle:getPositionXYZ())
   if first_vehicle then
@@ -582,8 +575,7 @@ local function onVehicleSpawned(id)
     vehicle:queueLuaCommand("recovery.saveHome()")
     first_vehicle = false
   end
-  vehicle:queueLuaCommand("extensions.addModulePath('lua/vehicle/extensions/kiss_mp')")
-  vehicle:queueLuaCommand("extensions.loadModulesInDirectory('lua/vehicle/extensions/kiss_mp')")
+  vehicle:queueLuaCommand("extensions.load('kissmp_main')")
   send_vehicle_config(id)
   -- Attempt to workaround a bug from latest beamng update. Also prevents unicycle cloning(Somewhat)
   if vehicle:getJBeamFilename() == "unicycle" then
@@ -596,11 +588,10 @@ local function onVehicleSpawned(id)
 end
 
 local function onVehicleDestroyed(id)
-  if not network.connection.connected then return end
   if M.ownership[id] then
     M.id_map[M.ownership[id]] = nil
     M.ownership[id] = nil
-    network.send_data(
+    kissmp_network.send_data(
       {
         RemoveVehicle = id,
       },
@@ -611,12 +602,11 @@ local function onVehicleDestroyed(id)
 end
 
 local function onVehicleResetted(id)
-  if not network.connection.connected then return end
   if M.ownership[id] then
     local vehicle = getObjectByID(id)
     local data = { vehicle_id = id, position = {vehicle:getPositionXYZ()}, rotation = vehicle:getRefNodeRotation():toTable()}
 
-    network.send_data(
+    kissmp_network.send_data(
       {
         ResetVehicle = data,
       },
@@ -632,22 +622,13 @@ local function onVehicleSwitched(_id, new_id)
     end
   end
   if M.ownership[new_id] then
-    network.send_data(
+    kissmp_network.send_data(
       {
         VehicleChanged = new_id,
       },
       true
     )
   end
-end
-
-local function onMissionLoaded(mission)
-  M.is_network_session = network.connection.connected
-  if not network.connection.connected then return end
-  M.id_map = {}
-  M.ownership = {}
-  M.loading_map = false
-  first_vehicle = true
 end
 
 local function onKissMPSettingsChanged(config)
@@ -671,8 +652,6 @@ M.onVehicleDestroyed = onVehicleDestroyed
 M.onVehicleResetted = onVehicleResetted
 M.onVehicleSpawned = onVehicleSpawned
 M.onVehicleSwitched = onVehicleSwitched
-M.onMissionLoaded = onMissionLoaded
-M.onFreeroamLoaded = onMissionLoaded
 M.electrics_diff_update = electrics_diff_update
 M.controllers_diff_update = controllers_diff_update
 M.attach_coupler = attach_coupler
@@ -683,5 +662,9 @@ M.detach_coupler_inner = detach_coupler_inner
 M.set_position = set_position
 M.set_position_rotation = set_position_rotation
 M.reset_in_place = reset_in_place
+
+M.onExtensionLoaded = function()
+  setExtensionUnloadMode(M, "manual")
+end
 
 return M

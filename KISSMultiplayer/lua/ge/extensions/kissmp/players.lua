@@ -4,7 +4,8 @@ local show_drivers = false
 
 M.lerp_factor = 5
 M.players = {}
-M.players_in_cars = {}
+M.player_bodies = {}
+M.player_heads_in_cars = {}
 M.player_heads_attachments = {}
 M.player_transforms = {}
 
@@ -70,7 +71,7 @@ end
 
 local function spawn_player(data)
   local player = createObject('TSStatic')
-  player:setField("shapeName", 0, "/art/shapes/kissmp_playermodels/base_nb.dae")
+  player:setField("shapeName", 0, "/art/kissmp/playermodels/base_nb.dae")
   player:setField("dynamic", 0, "true")
   player.scale = vec3(1, 1, 1)
   player:registerObject("player"..data.owner)
@@ -83,10 +84,10 @@ local function spawn_player(data)
   )
 
   local player_mesh_id = player:getID()
-  vehiclemanager.id_map[data.server_id] = player_mesh_id
-  vehiclemanager.server_ids[player_mesh_id] = data.server_id
+  kissmp_vehiclemanager.id_map[data.server_id] = player_mesh_id
+  kissmp_vehiclemanager.server_ids[player_mesh_id] = data.server_id
 
-  M.players[data.server_id] = player
+  M.player_bodies[data.server_id] = player
   M.player_transforms[data.server_id] = {
     position = vec3(data.position),
     target_position = vec3(data.position),
@@ -96,12 +97,20 @@ local function spawn_player(data)
   }
 end
 
+local function delete_player_body(id)
+  local obj = M.player_bodies[id]
+  if obj and obj.delete then
+    obj:delete()
+    M.player_bodies[id] = nil
+  end
+end
+
 local original_position = vec3()
 local temp_vec = vec3()
 local final_pos = vec3()
 local function update_unicycle_replacements(dt)
   for id, data in pairs(M.player_transforms) do
-    local player = M.players[id]
+    local player = M.player_bodies[id]
     if player and data then
       data.time_past = data.time_past + dt
       original_position:set(data.position)
@@ -130,21 +139,24 @@ end
 
 local function spawn_player_head(id, veh_id)
   local player = createObject('TSStatic')
-  player:setField("shapeName", 0, "/art/shapes/kissmp_playermodels/base_nb_head.dae")
+  player:setField("shapeName", 0, "/art/kissmp/playermodels/base_nb_head.dae")
   player:setField("dynamic", 0, "true")
   player.scale = vec3(1, 1, 1)
   local r, g, b, a = get_player_color(id)
   player:setField('instanceColor', 0, string.format("%g %g %g %g", r, g, b, a))
   player:registerObject("player_head"..id)
 
-  M.players_in_cars[id] = player
+  M.player_heads_in_cars[id] = player
   M.player_heads_attachments[id] = veh_id
 end
 
 local function delete_player_head(id)
-  M.players_in_cars[id]:delete()
-  M.players_in_cars[id] = nil
-  M.player_heads_attachments[id] = nil
+  local obj = M.player_heads_in_cars[id]
+  if obj and obj.delete then
+    obj:delete()
+    M.player_heads_in_cars[id] = nil
+    M.player_heads_attachments[id] = nil
+  end
 end
 
 local camera_pos = vec3()
@@ -154,25 +166,25 @@ local vehicle_vel = vec3()
 local function update_player_head(dt, player_id, vehicle)
   local cam_node, _ = core_camera.getDriverData(vehicle)
   local veh_id = vehicle:getID()
-  local transform = kisstransform.local_transforms[veh_id]
+  local transform = kissmp_transform.local_transforms[veh_id]
 
   if cam_node and transform then
     driver_cam_pos:set(vehicle:getNodeAbsPositionXYZ(cam_node))
     local r = transform.rotation
 
-    local hide = not show_drivers or kisstransform.inactive[veh_id]
+    local hide = not show_drivers or kissmp_transform.inactive[veh_id]
     hide = hide or vehicle == getPlayerVehicle(0) and camera_pos:squaredDistance(driver_cam_pos) < distance_threshold
-    if not hide and not M.players_in_cars[player_id] then
+    if not hide and not M.player_heads_in_cars[player_id] then
       spawn_player_head(player_id, veh_id)
     end
-    if hide and M.players_in_cars[player_id] then
+    if hide and M.player_heads_in_cars[player_id] then
       delete_player_head(player_id)
     end
 
     vehicle_vel:set(vehicle:getVelocityXYZ())
     vehicle_vel:setScaled(dt)
     driver_cam_pos:setAdd(vehicle_vel)
-    local player = M.players_in_cars[player_id]
+    local player = M.player_heads_in_cars[player_id]
     if player then
       local x, y, z = driver_cam_pos:xyz()
       player:setPosRot(
@@ -184,21 +196,49 @@ local function update_player_head(dt, player_id, vehicle)
 end
 
 local function update_players(_, dt_sim)
-  if vehiclemanager and vehiclemanager.loading_map then return end
+  if kissmp_vehiclemanager and kissmp_vehiclemanager.loading_map then return end
 
   update_unicycle_replacements(dt_sim)
 
   camera_pos:set(core_camera.getPositionXYZ())
-  for player_id, player_data in pairs(network.players) do
-    local vehicleId = vehiclemanager.id_map[player_data.current_vehicle or -1] or -1
+  for player_id, player_data in pairs(M.players) do
+    local vehicleId = kissmp_vehiclemanager.id_map[player_data.current_vehicle or -1] or -1
     local vehicle = getObjectByID(vehicleId)
 
     if vehicle and not blacklist[vehicle:getJBeamFilename()] then
       update_player_head(dt_sim, player_id, vehicle)
-    elseif M.players_in_cars[player_id] then
+    elseif M.player_heads_in_cars[player_id] then
       delete_player_head(player_id)
     end
   end
+end
+
+local function player_disconnect(data)
+  local id = data
+  M.players[id] = nil
+
+  delete_player_head(id)
+  delete_player_body(id)
+
+  M.player_transforms[id] = nil
+end
+
+local function player_info_update(player_info)
+  M.players[player_info.id] = player_info
+end
+
+local function onKissMPDisconnected()
+  -- clear scene
+  for id in pairs(M.player_heads_in_cars) do
+    delete_player_head(id)
+    delete_player_body(id)
+  end
+
+  M.players = {}
+  M.player_bodies = {}
+  M.player_transforms = {}
+  M.player_heads_in_cars = {}
+  M.player_heads_attachments = {}
 end
 
 local function onKissMPSettingsChanged(config)
@@ -206,10 +246,17 @@ local function onKissMPSettingsChanged(config)
 end
 
 M.spawn_player = spawn_player
-M.delete_player_head = delete_player_head
-
 M.get_player_color = get_player_color
+M.delete_player_body = delete_player_body
+M.delete_player_head = delete_player_head
+M.player_disconnect = player_disconnect
+M.player_info_update = player_info_update
+
 M.onUpdate = update_players
+M.onKissMPDisconnected = onKissMPDisconnected
 M.onKissMPSettingsChanged = onKissMPSettingsChanged
+M.onExtensionLoaded = function()
+  setExtensionUnloadMode(M, "manual")
+end
 
 return M

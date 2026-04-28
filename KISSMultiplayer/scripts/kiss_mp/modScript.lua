@@ -1,12 +1,1 @@
-print("Executing KissMP modScript...")
-loadJsonMaterialsFile("art/shapes/kissmp_playermodels/main.materials.json")
-
-setExtensionUnloadMode("kissplayers", "manual")
-setExtensionUnloadMode("vehiclemanager", "manual")
-setExtensionUnloadMode("kisstransform", "manual")
-setExtensionUnloadMode("kissui", "manual")
-setExtensionUnloadMode("kissmods", "manual")
-setExtensionUnloadMode("kissrichpresence", "manual")
-setExtensionUnloadMode("network", "manual")
-setExtensionUnloadMode("kissconfig", "manual")
-setExtensionUnloadMode("kissvoicechat", "manual")
+setExtensionUnloadMode("kissmp_main", "manual")

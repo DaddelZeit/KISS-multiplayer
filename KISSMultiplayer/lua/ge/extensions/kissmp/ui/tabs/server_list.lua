@@ -47,7 +47,7 @@ local function spairs(t, order)
 end
 
 local function filter_server_list(list, term, filter_notfull, filter_notempty, filter_online, m)
-  local kissui = kissui or m
+  local kissmp_ui = kissmp_ui or m
   local return_servers = {}
 
   local term_trimmed = term:gsub("^%s*(.-)%s*$", "%1")
@@ -90,25 +90,23 @@ local function filter_server_list(list, term, filter_notfull, filter_notempty, f
 end
 
 local function update_filtered_servers(m)
-  local kissui = kissui or m
+  local kissmp_ui = kissmp_ui or m
   local term = ffi.string(search_buffer)
   local filter_notfull = filter_servers_notfull[0]
   local filter_notempty = filter_servers_notempty[0]
   local filter_online = filter_servers_online[0]
 
   filtered_servers = filter_server_list(M.server_list, term, filter_notfull, filter_notempty, filter_online, m)
-  --filtered_favorite_servers = filter_server_list(kissui.tabs.favorites.favorite_servers, term, filter_notfull, filter_online, m)
+  --filtered_favorite_servers = filter_server_list(kissmp_ui.tabs.favorites.favorite_servers, term, filter_notfull, filter_online, m)
 end
 
 local function refresh_server_list(m)
-  local kissui = kissui or m
-  local b, _, _  = http.request("http://127.0.0.1:3693/check")
-  if b and b == "ok" then
-    kissui.bridge_launched = true
-  end
-  local b, _, _  = http.request("http://127.0.0.1:3693/"..kissui.master_addr.."/"..VERSION_PRTL)
-  if b then
-    M.server_list = jsonDecode(b) or {}
+  local kissmp_ui = kissmp_ui or m
+  if kissmp_main.check_bridge_connect() then
+    local b, _, _  = http.request("http://127.0.0.1:3693/"..kissmp_ui.master_addr.."/"..VERSION_PRTL)
+    if b then
+      M.server_list = jsonDecode(b) or {}
+    end
   end
 end
 
@@ -198,16 +196,16 @@ local function draw(dt)
       draw_server_description(server.description)
       imgui.PopTextWrapPos()
       if imgui.Button("Connect###connect_button_" .. tostring(server_count)) then
-        local player_name = ffi.string(kissui.player_name)
-        kissconfig.set_setting("ui.name", player_name)
-        network.connect(addr, player_name, true)
+        local player_name = ffi.string(kissmp_ui.player_name)
+        kissmp_config.set_setting("ui.name", player_name)
+        kissmp_network.connect(addr, player_name, true)
       end
 
-      local in_favorites_list = kissui.tabs.favorites.favorite_servers[addr] ~= nil
+      local in_favorites_list = kissmp_ui.tabs.favorites.favorite_servers[addr] ~= nil
       if not in_favorites_list then
         imgui.SameLine()
         if imgui.Button("Add to Favourites###add_favorite_button_" .. tostring(server_count)) then
-          kissui.tabs.favorites.add_server_to_favorites(addr, server)
+          kissmp_ui.tabs.favorites.add_server_to_favorites(addr, server)
           update_filtered_servers()
         end
       end
@@ -215,7 +213,7 @@ local function draw(dt)
   end
 
   imgui.PushTextWrapPos(0)
-  if not kissui.bridge_launched then
+  if not kissmp_main.bridge_launched then
     imgui.Text("The bridge is not running. Please launch the bridge and then click 'Refresh List'.")
   elseif server_count == 0 then
     imgui.Text("Server list is empty")

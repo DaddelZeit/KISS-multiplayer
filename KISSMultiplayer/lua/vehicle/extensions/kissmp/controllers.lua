@@ -43,7 +43,7 @@ local function send()
 
   if diff_count > 0 then
     obj:queueGameEngineLua(string.format(
-      "network.send_data(%q, true)",
+      "kissmp_network.send_data(%q, true)",
       jsonEncode({
         ControllersUndefinedUpdate = {objectId, {diff = diffs}}
       })))
@@ -62,9 +62,9 @@ end
 
 local function onExtensionLoaded()
   for _, contr in pairs(controller.getAllControllers()) do
-    if FS:fileExists(string.format("/lua/vehicle/extensions/kiss_mp/controller_sync_extensions/%s.lua", contr.typeName)) then
+    if FS:fileExists(string.format("/lua/vehicle/extensions/kissmp/controller_sync_extensions/%s.lua", contr.typeName)) then
       -- sync extensions are in this instance format to allow multiple controllers of the same type to be synced
-      local sync_ext = require("/kiss_mp/controller_sync_extensions/"..contr.typeName).new()
+      local sync_ext = require("/kissmp/controller_sync_extensions/"..contr.typeName).new()
 
       if sync_ext:set_controller(contr) then
         active_controllers[#active_controllers + 1] = sync_ext

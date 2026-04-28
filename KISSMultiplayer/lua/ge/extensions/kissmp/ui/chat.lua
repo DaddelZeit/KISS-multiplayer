@@ -36,7 +36,7 @@ local function send_current_chat_message()
   local message_trimmed = message:gsub("^%s*(.-)%s*$", "%1")
   if message_trimmed:len() == 0 then return end
 
-  network.send_data(
+  kissmp_network.send_data(
     {
       Chat = message_trimmed
     },
@@ -49,8 +49,8 @@ local function draw_player_list()
   imgui.BeginGroup();
   imgui.Text("Player List:")
   imgui.BeginChild1("PlayerList", imgui.ImVec2(0, 0), true)
-  if network.connection.connected then
-    for _, player in spairs(network.players, function(t,a,b) return t[b].name:lower() > t[a].name:lower() end) do
+  if kissmp_network.connection.connected then
+    for _, player in spairs(kissmp_players.players, function(t,a,b) return t[b].name:lower() > t[a].name:lower() end) do
       imgui.Text(player.name.."("..player.ping.." ms)")
     end
   end
@@ -60,7 +60,7 @@ end
 
 local message_color = imgui.ImVec4(0,0,0,0)
 local function draw()
-  if not kissui.gui.isWindowVisible("Chat") then return end
+  if not kissmp_ui.gui.isWindowVisible("Chat") then return end
   imgui.PushStyleVar2(imgui.StyleVar_WindowMinSize, imgui.ImVec2(100, 100))
 
   local window_title = "Chat"
@@ -69,7 +69,7 @@ local function draw()
   end
   window_title = window_title .. "###chat"
 
-  imgui.SetNextWindowBgAlpha(kissui.window_opacity)
+  imgui.SetNextWindowBgAlpha(kissmp_ui.window_opacity)
   if imgui.Begin(window_title) then
     local content_width = imgui.GetWindowContentRegionWidth()
     imgui.BeginChild1("ChatWindowUpperContent", imgui.ImVec2(0, -30), true)
@@ -154,10 +154,10 @@ local function add_message(message, color, sent_by)
   local user_color
   local user_name
   if sent_by ~= nil then
-    if network.players[sent_by] then
-      local r,g,b,a = kissplayers.get_player_color(sent_by)
+    if kissmp_players.players[sent_by] then
+      local r,g,b,a = kissmp_players.get_player_color(sent_by)
       user_color = {r,g,b,a}
-      user_name = network.players[sent_by].name
+      user_name = kissmp_players.players[sent_by].name
     end
   end
   local has_color = color ~= nil and type(color) == 'table'

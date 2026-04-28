@@ -44,7 +44,7 @@ local function save_config()
     if k == "security.base_secret_v2" or k == "ui.name" or defaults[k] ~= nil then
       result.data[k] = v
     else
-      log("W", "kissmp.kissconfig.save_config", "Unknown settings key: "..tostring(k)..". Will be skipped in save.")
+      log("W", "kissmp_config.save_config", "Unknown settings key: "..tostring(k)..". Will be skipped in save.")
     end
   end
 
@@ -71,6 +71,10 @@ local function get_setting(id)
     return defaults[id]
   end
   return config[id]
+end
+
+local function send_config()
+  extensions.hook("onKissMPSettingsChanged", magic_config)
 end
 
 local function load_config()
@@ -111,11 +115,8 @@ local function load_config()
   extensions.hook("onKissMPSettingsChanged", magic_config)
 end
 
-local function init()
+local function onKissMPLoaded()
   load_config()
-  if #FS:findFiles("/mods/", "kissmultiplayer.zip", 1000) == 0 then
-    kissui.incorrect_install = true
-  end
 end
 
 M.set_setting = set_setting
@@ -124,6 +125,10 @@ M.save_config = save_config
 M.load_config = load_config
 
 M.onUpdate = update
-M.onExtensionLoaded = init
+M.onKissMPLoaded = onKissMPLoaded
+M.onKissMPConnected = send_config
+M.onExtensionLoaded = function()
+  setExtensionUnloadMode(M, "manual")
+end
 
 return M

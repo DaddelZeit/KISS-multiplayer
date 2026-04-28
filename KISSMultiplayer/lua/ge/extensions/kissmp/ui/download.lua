@@ -18,10 +18,10 @@ local function format_eta(seconds)
 end
 
 local function draw(gui)
-  if not kissui.show_download then return end
+  if not kissmp_ui.show_download then return end
 
-  if not kissui.gui.isWindowVisible("Downloads") then return end
-  imgui.SetNextWindowBgAlpha(kissui.window_opacity)
+  if not kissmp_ui.gui.isWindowVisible("Downloads") then return end
+  imgui.SetNextWindowBgAlpha(kissmp_ui.window_opacity)
   imgui.PushStyleVar2(imgui.StyleVar_WindowMinSize, imgui.ImVec2(300, 300))
   imgui.SetNextWindowViewport(imgui.GetMainViewport().ID)
   if imgui.Begin("Downloading Required Mods") then
@@ -35,8 +35,8 @@ local function draw(gui)
     local split_width = content_width * 0.495
 
     imgui.PushItemWidth(content_width / 2)
-    if network.downloads_status then
-      for _, download_status in pairs(network.downloads_status) do
+    if kissmp_network.downloads_status then
+      for _, download_status in pairs(kissmp_network.downloads_status) do
         local text_size = imgui.CalcTextSize(download_status.name)
         local extra_size = split_width - text_size.x
 
@@ -48,7 +48,7 @@ local function draw(gui)
         imgui.SameLine()
         imgui.ProgressBar(download_status.progress, imgui.ImVec2(split_width, 0))
 
-        local mod = kissmods.mods[download_status.name]
+        local mod = kissmp_mods.mods[download_status.name]
         local mod_size = (mod and mod.size) or 0
         total_size = total_size + mod_size
         downloaded_size = downloaded_size + (mod_size * download_status.progress)
@@ -56,8 +56,8 @@ local function draw(gui)
     end
     imgui.EndChild()
 
-    local total_size_bytes = network.download_total_bytes or 0
-    local downloaded_size_bytes = network.downloaded_bytes or 0
+    local total_size_bytes = kissmp_network.download_total_bytes or 0
+    local downloaded_size_bytes = kissmp_network.downloaded_bytes or 0
     if total_size_bytes <= 0 then
       total_size_bytes = total_size
       downloaded_size_bytes = downloaded_size
@@ -68,8 +68,8 @@ local function draw(gui)
     local progress_text = tostring(math.floor(downloaded_size)) .. "MB / " .. tostring(math.floor(total_size)) .. "MB"
 
     local elapsed = 0
-    if (network.download_start_time or 0) > 0 then
-      elapsed = socket.gettime() - network.download_start_time
+    if (kissmp_network.download_start_time or 0) > 0 then
+      elapsed = socket.gettime() - kissmp_network.download_start_time
     end
     if elapsed <= 0 then elapsed = 0.001 end
     local progress_speed = downloaded_size / elapsed
@@ -94,8 +94,8 @@ local function draw(gui)
     end
     imgui.SameLine()
     if imgui.Button("Cancel###cancel_download", imgui.ImVec2(split_width, -1)) then
-      kissui.show_download = false
-      network.disconnect()
+      kissmp_ui.show_download = false
+      kissmp_network.disconnect()
     end
   end
   imgui.End()
